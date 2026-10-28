@@ -25,7 +25,7 @@ jobs:
         with:
           source-directory: 'output'
           destination-github-username: HongikNam # 개인 레포 소유자의 username
-          destination-repository-name: FANMIX # 포크 뜬 개인 레포 이름
+          destination-repository-name: AUTEDI-prototype # 포크 뜬 개인 레포 이름
           user-email: ${{ secrets.OFFICIAL_ACCOUNT_EMAIL }} # 개인 계정 이메일
           commit-message: ${{ github.event.commits[0].message }}
           target-branch: prototype # 개인 레포의 어느 브랜치에 복사할건지
