@@ -1,4 +1,5 @@
 import { useEffect, type PropsWithChildren } from 'react'
+import brandIcon from '../image/pavicon.ico'
 import { useAppStore } from '../store/useAppStore'
 
 type AppShellProps = PropsWithChildren<{
@@ -23,7 +24,7 @@ export function AppShell({ children, onNavigate }: AppShellProps) {
             onNavigate('home')
           }}
         >
-          <span className="brand-mark">A</span>
+          <img className="brand-mark" src={brandIcon} alt="" />
           <b>AUTEDI</b>
         </a>
         <button
@@ -37,6 +38,8 @@ export function AppShell({ children, onNavigate }: AppShellProps) {
         </button>
         <nav aria-label="주요 메뉴" className="main-nav">
           <button
+            aria-label="홈"
+            title="홈"
             aria-current={page === 'home' ? 'page' : undefined}
             className={`nav-item${page === 'home' ? ' active' : ''}`}
             onClick={() => onNavigate('home')}
@@ -46,6 +49,8 @@ export function AppShell({ children, onNavigate }: AppShellProps) {
             <span>홈</span>
           </button>
           <button
+            aria-label="AI 첨삭"
+            title="AI 첨삭"
             aria-current={page === 'review' ? 'page' : undefined}
             className={`nav-item${page === 'review' ? ' active' : ''}`}
             onClick={() => onNavigate('review')}
@@ -54,12 +59,14 @@ export function AppShell({ children, onNavigate }: AppShellProps) {
             <span className="nav-icon">✎</span>
             <span>AI 첨삭</span>
           </button>
-          <button className="nav-item nav-disabled" onClick={() => showToast('이력 관리는 곧 열릴 예정이에요')} type="button">
+          <button aria-label="이력 관리 (준비 중)" title="이력 관리 (준비 중)" className="nav-item nav-disabled" onClick={() => showToast('이력 관리는 곧 열릴 예정이에요')} type="button">
             <span className="nav-icon">◷</span>
             <span>이력 관리</span>
             <i>준비 중</i>
           </button>
           <button
+            aria-label="학생 관리 (권한 없음)"
+            title="학생 관리 (권한 없음)"
             className="nav-item nav-disabled"
             onClick={() => showToast('학생 관리 접근 권한이 아직 없어요')}
             type="button"

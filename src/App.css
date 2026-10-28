@@ -32,17 +32,11 @@
 }
 
 .brand-mark {
-  display: grid;
+  display: block;
   width: 33px;
   height: 33px;
-  place-items: center;
-  border: 1px solid rgb(255 255 255 / 28%);
-  border-radius: 11px;
-  color: white;
-  background: linear-gradient(145deg, #8590ff, #5262dd);
-  box-shadow: 0 6px 20px rgb(78 96 233 / 32%);
-  font-size: 17px;
-  font-weight: 800;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 
 .sidebar-toggle {
@@ -1902,6 +1896,47 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   clip-path: inset(50%);
+}
+
+@media (min-width: 641px) {
+  .app-shell.sidebar-collapsed {
+    grid-template-columns: 78px minmax(0, 1fr);
+  }
+
+  .sidebar-collapsed .sidebar {
+    align-items: center;
+    padding-right: 11px;
+    padding-left: 11px;
+  }
+
+  .sidebar-collapsed .brand b,
+  .sidebar-collapsed .nav-item span:nth-child(2),
+  .sidebar-collapsed .nav-item i,
+  .sidebar-collapsed .help-link,
+  .sidebar-collapsed .user-profile > div,
+  .sidebar-collapsed .user-profile > button {
+    display: none;
+  }
+
+  .sidebar-collapsed .sidebar-toggle {
+    top: 76px;
+    right: 24px;
+  }
+
+  .sidebar-collapsed .main-nav {
+    width: 100%;
+    margin-top: 62px;
+  }
+
+  .sidebar-collapsed .nav-item {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .sidebar-collapsed .user-profile {
+    justify-content: center;
+    border: 0;
+  }
 }
 
 @media (max-width: 1180px) {
