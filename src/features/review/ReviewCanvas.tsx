@@ -5,10 +5,12 @@ import type { KonvaEventObject } from 'konva/lib/Node'
 import type { FeedbackItem, TeacherComment } from './types'
 
 type ReviewCanvasProps = {
+  activeFeedbackId: string
+  selection: { x: number; y: number; width: number; height: number } | null
+  onSelectTeacherComment: (comment: TeacherComment) => void
   imageUrl: string
   feedback: FeedbackItem[]
   teacherComments: TeacherComment[]
-  activeFeedbackId: string
   drawing: boolean
   zoom: number
   onSelectFeedback: (id: string) => void
@@ -24,10 +26,12 @@ const STAGE_HEIGHT = 646
 const NOTE_WIDTH = 224
 
 export function ReviewCanvas({
+  activeFeedbackId,
+  selection,
+  onSelectTeacherComment,
   imageUrl,
   feedback,
   teacherComments,
-  activeFeedbackId,
   drawing,
   zoom,
   onSelectFeedback,
@@ -66,13 +70,40 @@ export function ReviewCanvas({
   const { photoWidth, photoHeight } = useMemo(() => {
     const scale = Math.min(440 / naturalSize.width, 584 / naturalSize.height)
     return {
-      photoWidth: Math.max(220, naturalSize.width * scale),
-      photoHeight: Math.max(290, naturalSize.height * scale),
+      photoWidth: naturalSize.width * scale,
+      photoHeight: naturalSize.height * scale,
     }
   }, [naturalSize])
 
   const stageWidth = photoWidth + NOTE_WIDTH + 44
-  const stageHeight = Math.max(STAGE_HEIGHT, photoHeight)
+  const stageHeight = Math.max(
+    STAGE_HEIGHT,
+    photoHeight,
+    (feedback.length + teacherComments.length) * 82 + 16,
+  )
+  const noteTargets = [
+    ...feedback.map((item) => ({
+      id: `ai-${item.id}`,
+      targetY: (item.noteY / 100) * photoHeight,
+      height: 57,
+    })),
+    ...teacherComments.map((comment) => ({
+      id: `teacher-${comment.id}`,
+      targetY: ((comment.y + comment.height / 2) / 100) * photoHeight,
+      height: 70,
+    })),
+  ].sort((a, b) => a.targetY - b.targetY)
+  const notePositions = new Map<string, number>()
+  let nextNoteY = 8
+  for (const note of noteTargets) {
+    const y = Math.max(8, note.targetY - note.height / 2, nextNoteY)
+    notePositions.set(note.id, y)
+    nextNoteY = y + note.height + 8
+  }
+  const noteOverflow = Math.max(0, nextNoteY - 8 - stageHeight)
+  if (noteOverflow > 0) {
+    for (const [id, y] of notePositions) notePositions.set(id, Math.max(8, y - noteOverflow))
+  }
   const imagePosition = (x: number, y: number) => ({
     x: (x / 100) * photoWidth,
     y: (y / 100) * photoHeight,
@@ -126,8 +157,8 @@ export function ReviewCanvas({
     }
     setDragOrigin(null)
     setDraftBox(null)
-    onDrawingEnd()
     if (box.width < 18 || box.height < 8) return
+    onDrawingEnd()
     onSelection({
       x: (box.x / photoWidth) * 100,
       y: (box.y / photoHeight) * 100,
@@ -142,7 +173,7 @@ export function ReviewCanvas({
   return (
     <div
       className={`review-canvas-wrap${drawing ? ' is-drawing' : ''}`}
-      onPointerCancel={handlePointerUp}
+      onPointerCancel={() => { setDragOrigin(null); setDraftBox(null); onDrawingEnd() }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -152,10 +183,10 @@ export function ReviewCanvas({
         <div className="canvas-error">이미지를 표시할 수 없어요. 다른 이미지로 다시 시도해주세요.</div>
       ) : (
         <Stage
-          height={stageHeight}
+          height={fitStageHeight}
           scaleX={zoom}
           scaleY={zoom}
-          width={stageWidth}
+          width={fitStageWidth}
         >
           <Layer>
             <Rect
@@ -175,8 +206,7 @@ export function ReviewCanvas({
               const height = Math.max(20, (item.height / 100) * photoHeight)
               const color = item.kind === 'correction' ? '#e34e63' : '#4c65e8'
               const noteX = photoWidth + 20
-              const noteY = Math.min(stageHeight - 80, Math.max(8, (item.noteY / 100) * photoHeight))
-              const active = item.id === activeFeedbackId
+              const noteY = notePositions.get(`ai-${item.id}`) ?? 8
 
               return (
                 <Group key={item.id}>
@@ -185,13 +215,13 @@ export function ReviewCanvas({
                     opacity={0.72}
                     points={[x + width, y + height / 2, noteX - 10, noteY + 28]}
                     stroke={color}
-                    strokeWidth={active ? 2 : 1}
+                    strokeWidth={1}
                   />
                   <Rect
                     cornerRadius={item.kind === 'correction' ? 12 : 4}
                     dash={item.kind === 'improvement' ? [5, 4] : undefined}
                     draggable={!drawing}
-                    fill={active ? `${color}18` : `${color}0a`}
+                    fill={`${color}0a`}
                     height={height}
                     onClick={() => onSelectFeedback(item.id)}
                     onDragEnd={(event) =>
@@ -202,17 +232,17 @@ export function ReviewCanvas({
                       )
                     }
                     onTap={() => onSelectFeedback(item.id)}
-                    shadowBlur={active ? 8 : 0}
+                    shadowBlur={0}
                     shadowColor={color}
                     stroke={color}
-                    strokeWidth={active ? 2.4 : 1.5}
+                    strokeWidth={1.5}
                     width={width}
                     x={x}
                     y={y}
                   />
                   <Rect
                     cornerRadius={11}
-                    fill={active ? '#fff' : '#ffffffef'}
+                    fill="#ffffffef"
                     height={57}
                     onClick={() => onSelectFeedback(item.id)}
                     onTap={() => onSelectFeedback(item.id)}
@@ -239,6 +269,8 @@ export function ReviewCanvas({
                     listening={false}
                     onClick={() => onSelectFeedback(item.id)}
                     onTap={() => onSelectFeedback(item.id)}
+                    height={18}
+                    wrap="none"
                     text={item.suggestion}
                     width={NOTE_WIDTH - 26}
                     x={noteX + 22}
@@ -254,6 +286,22 @@ export function ReviewCanvas({
                     x={noteX + 22}
                     y={noteY + 33}
                   />
+                  {item.id === activeFeedbackId && (
+                    <Group listening={false} x={noteX + NOTE_WIDTH - 59} y={noteY + 31}>
+                      <Rect width={49} height={18} cornerRadius={5} fill="#e6e9ff" />
+                      <Text
+                        text="선택됨"
+                        width={49}
+                        height={18}
+                        align="center"
+                        verticalAlign="middle"
+                        fontFamily="Inter, Pretendard, sans-serif"
+                        fontSize={9}
+                        fontStyle="bold"
+                        fill="#4353c7"
+                      />
+                    </Group>
+                  )}
                 </Group>
               )
             })}
@@ -262,6 +310,8 @@ export function ReviewCanvas({
               const width = (comment.width / 100) * photoWidth
               const height = Math.max(16, (comment.height / 100) * photoHeight)
               const color = comment.color === 'red' ? '#e34e63' : '#4365e8'
+              const noteX = photoWidth + 20
+              const noteY = notePositions.get(`teacher-${comment.id}`) ?? 8
               const onDragEnd = (event: KonvaEventObject<DragEvent>) =>
                 onMoveTeacherComment(
                   comment.id,
@@ -271,44 +321,101 @@ export function ReviewCanvas({
 
               return (
                 <Group
-                  draggable
                   key={comment.id}
-                  onDragEnd={onDragEnd}
-                  x={x}
-                  y={y}
                 >
-                  {comment.style === 'underline' && (
-                    <Line points={[0, height, width, height]} stroke={color} strokeWidth={3} />
-                  )}
-                  {comment.style === 'arrow' && (
-                    <Arrow
-                      points={[0, height / 2, width, height / 2]}
-                      pointerLength={9}
-                      pointerWidth={8}
-                      stroke={color}
-                      strokeWidth={2}
-                    />
-                  )}
-                  {comment.style === 'caret' && (
-                    <Line
-                      points={[0, height, width / 2, 0, width, height]}
-                      stroke={color}
-                      strokeWidth={2.5}
-                    />
-                  )}
-                  {(comment.style === 'highlight' || comment.style === 'box') && (
-                    <Rect
-                      cornerRadius={comment.style === 'highlight' ? 8 : 2}
-                      fill={comment.style === 'highlight' ? `${color}18` : 'transparent'}
-                      height={height}
-                      stroke={color}
-                      strokeWidth={2}
-                      width={width}
-                    />
-                  )}
+                  <Line
+                    listening={false}
+                    points={[x + width, y + height / 2, noteX - 9, noteY + 35]}
+                    stroke={color}
+                    strokeWidth={1.5}
+                  />
+                  <Group draggable={!drawing} onClick={() => !drawing && onSelectTeacherComment(comment)} onTap={() => !drawing && onSelectTeacherComment(comment)} onDragEnd={onDragEnd} x={x} y={y}>
+                    {comment.style === 'underline' && (
+                      <Line
+                        points={[0, height, width, height]}
+                        stroke={color}
+                        strokeWidth={3}
+                      />
+                    )}
+                    {comment.style === 'arrow' && (
+                      <Arrow
+                        points={[0, height / 2, width, height / 2]}
+                        pointerLength={9}
+                        pointerWidth={8}
+                        stroke={color}
+                        strokeWidth={2}
+                      />
+                    )}
+                    {comment.style === 'caret' && (
+                      <Line
+                        points={[0, height, width / 2, 0, width, height]}
+                        stroke={color}
+                        strokeWidth={2.5}
+                      />
+                    )}
+                    {(comment.style === 'highlight' || comment.style === 'box') && (
+                      <Rect
+                        cornerRadius={comment.style === 'highlight' ? 8 : 2}
+                        fill={comment.style === 'highlight' ? `${color}18` : 'transparent'}
+                        height={height}
+                        stroke={color}
+                        strokeWidth={2}
+                        width={width}
+                      />
+                    )}
+                  </Group>
+                  <Rect
+                    cornerRadius={11}
+                    fill="#fff"
+                    height={70}
+                    onClick={() => !drawing && onSelectTeacherComment(comment)}
+                    onTap={() => !drawing && onSelectTeacherComment(comment)}
+                    shadowBlur={9}
+                    shadowColor="#212646"
+                    shadowOpacity={0.14}
+                    width={NOTE_WIDTH}
+                    x={noteX}
+                    y={noteY}
+                  />
+                  <Rect
+                    cornerRadius={3}
+                    fill={color}
+                    height={42}
+                    width={4}
+                    x={noteX + 10}
+                    y={noteY + 14}
+                  />
+                  <Text
+                    fill={color}
+                    fontFamily="Inter, Pretendard, sans-serif"
+                    fontSize={9}
+                    fontStyle="bold"
+                    listening={false}
+                    text="선생님 코멘트"
+                    width={NOTE_WIDTH - 30}
+                    x={noteX + 22}
+                    y={noteY + 10}
+                  />
+                  <Text
+                    ellipsis
+                    fontFamily="Inter, Pretendard, sans-serif"
+                    fontSize={11}
+                    listening={false}
+                    lineHeight={1.3}
+                    height={34}
+                    text={comment.text}
+                    width={NOTE_WIDTH - 32}
+                    x={noteX + 22}
+                    y={noteY + 27}
+                  />
                 </Group>
               )
             })}
+            {selection && !draftBox && <Rect
+              x={selection.x / 100 * photoWidth} y={selection.y / 100 * photoHeight}
+              width={selection.width / 100 * photoWidth} height={selection.height / 100 * photoHeight}
+              stroke="#334bdd" strokeWidth={3} dash={[6, 4]} fill="#5867e829" listening={false}
+            />}
             {draftBox && (
               <Rect
                 dash={[6, 4]}

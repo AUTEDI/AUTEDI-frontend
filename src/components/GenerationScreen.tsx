@@ -27,15 +27,15 @@ export function GenerationScreen() {
         <div className="scan-halo" />
       </div>
       <span className="eyebrow">AI REVIEW IN PROGRESS</span>
-      <h2>학생의 글을 꼼꼼히 읽고 있어요</h2>
-      <p>사진 속 글의 위치를 찾고 문법과 표현을 분석하는 중이에요.</p>
+      <h2>로컬 첨삭 작업을 준비하고 있어요</h2>
+      <p>예시 학습지는 설정별 목업 결과를, 업로드한 사진은 수기 첨삭 작업 공간을 준비합니다.</p>
       <div aria-label={`첨삭 진행 ${progress}%`} className="progress-track">
         <span style={{ width: `${progress}%` }} />
       </div>
       <div className="generation-steps">
-        <span className="done">✓ 이미지 인식</span>
+        <span className="done">✓ 이미지 준비</span>
         <i />
-        <span className={progress > 38 ? 'done' : ''}>{progress > 38 ? '✓' : '○'} 선택 영역 분석</span>
+        <span className={progress > 38 ? 'done' : ''}>{progress > 38 ? '✓' : '○'} 설정 확인</span>
         <i />
         <span className={progress > 72 ? 'done' : ''}>{progress > 72 ? '●' : '○'} 첨삭 레이어 생성</span>
       </div>

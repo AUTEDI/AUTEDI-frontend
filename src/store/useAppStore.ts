@@ -1,13 +1,15 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import sampleWriting from '../assets/sample-writing.jpeg'
-import { initialFeedback, initialSettings } from '../features/review/mockData'
+import { initialSettings } from '../features/review/mockData'
 import type { FeedbackItem, ReviewSetting, TeacherComment } from '../features/review/types'
 
 export type AppPage = 'home' | 'review'
 export type ReviewStep = 'upload' | 'settings' | 'generation' | 'canvas'
 
 type AppState = {
+  reviewId: string | null
+  startNewReview: () => void
   page: AppPage
   step: ReviewStep
   defaults: ReviewSetting[]
@@ -56,26 +58,32 @@ function isReviewSetting(value: unknown): value is ReviewSetting {
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
+  startNewReview: () => {
+    const old = get().imageUrl
+    if (old?.startsWith('blob:')) URL.revokeObjectURL(old)
+    set({ reviewId: null, page: 'review', step: 'upload', imageUrl: null, imageName: null, feedback: [], activeFeedbackId: '', appliedFeedbackIds: [], teacherComments: [], sessionSettings: get().defaults.map(s => ({ ...s })) })
+  },
+  reviewId: null,
   page: 'home',
   step: 'upload',
   defaults: initialSettings.map((setting) => ({ ...setting })),
   sessionSettings: initialSettings.map((setting) => ({ ...setting })),
   imageUrl: null,
   imageName: null,
-  feedback: initialFeedback.map((item) => ({ ...item })),
-  activeFeedbackId: '1',
+  feedback: [],
+  activeFeedbackId: '',
   appliedFeedbackIds: [],
   teacherComments: [],
   sidebarCollapsed: false,
   toast: null,
-  setPage: (page) => set({ page, ...(page === 'review' ? { step: 'upload' as const } : {}) }),
+  setPage: (page) => page === 'review' ? get().startNewReview() : set({ page }),
   setStep: (step) => set({ step }),
   setDefaults: (defaults) => set({ defaults, sessionSettings: defaults.map((setting) => ({ ...setting })) }),
   setSessionSettings: (sessionSettings) => set({ sessionSettings }),
-  setImage: (imageUrl, imageName) => set({ imageUrl, imageName }),
-  clearImage: () => set({ imageUrl: null, imageName: null }),
-  loadSample: () => set({ imageUrl: sampleWriting, imageName: 'sample-writing.jpeg' }),
+  setImage: (imageUrl, imageName) => set({ reviewId: null, imageUrl, imageName, feedback: [], activeFeedbackId: '', appliedFeedbackIds: [], teacherComments: [] }),
+  clearImage: () => set({ reviewId: null, imageUrl: null, imageName: null, feedback: [], teacherComments: [], appliedFeedbackIds: [], activeFeedbackId: '' }),
+  loadSample: () => get().setImage(sampleWriting, 'sample-writing.jpeg'),
   setFeedback: (feedback) =>
     set({ feedback, activeFeedbackId: feedback[0]?.id ?? '', appliedFeedbackIds: [] }),
   selectFeedback: (activeFeedbackId) => set({ activeFeedbackId }),

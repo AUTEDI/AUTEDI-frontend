@@ -28,14 +28,21 @@ export function UploadScreen({ onGenerate, onHome }: UploadScreenProps) {
     loadSample()
   }
 
-  const loadFile = (file?: File) => {
+  const loadFile = async (file?: File) => {
     if (!file) return
     if (!['image/jpeg', 'image/png'].includes(file.type)) {
       showToast('현재 데모에서는 JPG 또는 PNG 이미지만 미리보기할 수 있어요')
       return
     }
+    if (file.size > 20 * 1024 * 1024) { showToast('20MB 이하의 이미지를 선택해주세요'); return }
+    const url = URL.createObjectURL(file)
+    try {
+      const image = new Image()
+      image.src = url
+      await image.decode()
+    } catch { URL.revokeObjectURL(url); showToast('이미지를 읽을 수 없어요. 다른 파일을 선택해주세요'); return }
     if (imageUrl?.startsWith('blob:')) URL.revokeObjectURL(imageUrl)
-    setImage(URL.createObjectURL(file), file.name)
+    setImage(url, file.name)
     showToast('학습지 사진을 불러왔어요')
   }
 
@@ -90,7 +97,8 @@ export function UploadScreen({ onGenerate, onHome }: UploadScreenProps) {
           <span className="upload-icon">↑</span>
           <h2>사진 또는 파일을 놓아주세요</h2>
           <p>또는 클릭해서 기기에서 선택하세요</p>
-          <small>JPG · PNG</small>
+          <small>JPG · PNG · 최대 20MB</small>
+          <p>로컬 데모: 업로드한 사진은 수기 첨삭, 예시 학습지는 AI 목업 결과를 제공합니다.</p>
         </div>
         <button className="sample-upload" onClick={loadExample} type="button">
           <span className="sample-thumb">
@@ -144,7 +152,7 @@ export function UploadScreen({ onGenerate, onHome }: UploadScreenProps) {
       </aside>
       <div className="flow-actions">
         <Button onClick={onHome}>취소</Button>
-        <Button disabled={!imageUrl} onClick={onGenerate} variant="primary">
+        <Button disabled={!imageUrl} onClick={() => { setSessionSettings(defaults.map(s => ({ ...s }))); onGenerate() }} variant="primary">
           기본 설정으로 첨삭 시작 <b>✦</b>
         </Button>
       </div>

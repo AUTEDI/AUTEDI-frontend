@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Button } from '../../design-system/Button'
+import { saveReview } from '../../services/reviewStorage'
 import { ReviewCanvas } from './ReviewCanvas'
 import type { TeacherComment } from './types'
 import { useAppStore } from '../../store/useAppStore'
@@ -40,7 +41,35 @@ export function ReviewWorkspace({ onBack }: { onBack: () => void }) {
   const [zoom, setZoom] = useState(0.9)
   const [editingSuggestion, setEditingSuggestion] = useState(false)
   const [suggestionDraft, setSuggestionDraft] = useState('')
-  const [showComplete, setShowComplete] = useState(false)
+  const [editingTeacherId, setEditingTeacherId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const savedId = useRef(useAppStore.getState().reviewId ?? crypto.randomUUID())
+  const [editingFeedbackId, setEditingFeedbackId] = useState<string | null>(null)
+  const changeFeedback = (id: string) => {
+    setEditingSuggestion(false)
+    setEditingFeedbackId(null)
+    selectFeedback(id)
+  }
+  const openTeacherNote = (comment: TeacherComment) => {
+    setPanelMode('teacher'); setDrawing(false); setEditingTeacherId(comment.id)
+    setSelection(comment); setTeacherText(comment.text)
+    setAnnotationColor(comment.color); setAnnotationStyle(comment.style)
+  }
+  const saveWork = async () => {
+    if (editingSuggestion || teacherText.trim()) { showToast('작성 중인 추천 문장 또는 교사 코멘트를 먼저 저장해주세요'); return }
+    if (!imageUrl || saving) return
+    setSaving(true)
+    const state = useAppStore.getState()
+    try {
+      await saveReview({ id: savedId.current, savedAt: new Date().toISOString(), imageUrl,
+        imageName: state.imageName ?? '학습지', feedback: structuredClone(feedback),
+        teacherComments: structuredClone(teacherComments), appliedFeedbackIds: [...appliedFeedbackIds],
+        sessionSettings: structuredClone(state.sessionSettings) })
+      useAppStore.setState({ reviewId: savedId.current })
+      showToast('이 기기에 저장했어요. 홈의 최근 작업에서 다시 열 수 있어요')
+    } catch { showToast('저장하지 못했어요. 브라우저 저장 공간을 확인하고 다시 시도해주세요') }
+    finally { setSaving(false) }
+  }
 
   const activeFeedback = useMemo(
     () => feedback.find((item) => item.id === activeFeedbackId) ?? null,
@@ -49,6 +78,8 @@ export function ReviewWorkspace({ onBack }: { onBack: () => void }) {
 
   const startTeacherNote = () => {
     setPanelMode('teacher')
+    setEditingTeacherId(null)
+    setTeacherText('')
     setSelection(null)
     setDrawing(true)
     showToast('사진 위 문장을 드래그해 선택하세요')
@@ -59,29 +90,33 @@ export function ReviewWorkspace({ onBack }: { onBack: () => void }) {
       showToast('문장을 선택하고 코멘트를 입력해주세요')
       return
     }
-    const id = `teacher-${Date.now()}`
-    addTeacherComment({
+    const id = editingTeacherId ?? crypto.randomUUID()
+    const comment: TeacherComment = {
       id,
       text: teacherText.trim(),
       ...selection,
       color: annotationColor,
       style: annotationStyle,
-    })
+    }
+    if (editingTeacherId) updateTeacherComment(id, comment)
+    else addTeacherComment(comment)
+    setEditingTeacherId(null)
     setSelection(null)
     setTeacherText('')
-    setDrawing(false)
-    showToast('교사 코멘트를 저장했어요')
+    setDrawing(true)
+    showToast('교사 코멘트를 저장했어요. 다음 문장을 바로 선택할 수 있어요')
   }
 
   const beginSuggestionEdit = () => {
     if (!activeFeedback) return
     setSuggestionDraft(activeFeedback.suggestion)
+    setEditingFeedbackId(activeFeedback.id)
     setEditingSuggestion(true)
   }
 
   const saveSuggestion = () => {
     const nextSuggestion = suggestionDraft.trim()
-    if (!activeFeedback || !nextSuggestion) {
+    if (!activeFeedback || activeFeedback.id !== editingFeedbackId || !nextSuggestion) {
       showToast('추천 문장을 입력해주세요')
       return
     }
@@ -104,17 +139,18 @@ export function ReviewWorkspace({ onBack }: { onBack: () => void }) {
     <section className="review-page">
       <div className="studio-titlebar">
         <div>
-          <span className="review-status">검토 중</span>
-          <small>사진의 원하는 문장을 드래그해 직접 피드백할 수 있어요.</small>
+          <span className="review-status">로컬 데모 · 검토 중</span>
+          <small>예시 학습지만 목업 AI 결과를 제공합니다. 업로드한 사진에는 직접 코멘트를 작성하세요.</small>
         </div>
         <div>
           <Button
-            onClick={() => showToast('현재 첨삭 내용을 저장했어요')}
+            disabled={saving}
+            onClick={saveWork}
             variant="secondary"
           >
-            저장
+            {saving ? '저장 중…' : '저장'}
           </Button>
-          <Button onClick={() => setShowComplete(true)} variant="primary">
+          <Button onClick={() => { if (editingSuggestion || teacherText.trim()) { showToast('작성 중인 내용을 먼저 저장해주세요'); return } window.print() }} variant="primary">
             PDF 출력
           </Button>
         </div>
@@ -182,11 +218,14 @@ export function ReviewWorkspace({ onBack }: { onBack: () => void }) {
                 imageUrl={imageUrl}
                 onDrawingEnd={() => setDrawing(false)}
                 onMoveFeedback={(id, x, y) => updateFeedback(id, { x, y })}
-                onMoveTeacherComment={(id, x, y) => updateTeacherComment(id, { x, y })}
+                onMoveTeacherComment={(id, x, y) => { updateTeacherComment(id, { x, y }); if (editingTeacherId === id) setSelection(current => current ? { ...current, x, y } : null) }}
                 onSelectFeedback={(id) => {
                   setPanelMode('ai')
-                  selectFeedback(id)
+                  setDrawing(false)
+                  changeFeedback(id)
                 }}
+                selection={panelMode === 'teacher' ? selection : null}
+                onSelectTeacherComment={openTeacherNote}
                 onSelection={setSelection}
                 teacherComments={teacherComments}
                 zoom={zoom}
@@ -210,6 +249,7 @@ export function ReviewWorkspace({ onBack }: { onBack: () => void }) {
               onClick={() => {
                 setPanelMode('ai')
                 setDrawing(false)
+                setSelection(null)
               }}
               role="tab"
               type="button"
@@ -240,13 +280,13 @@ export function ReviewWorkspace({ onBack }: { onBack: () => void }) {
                     aria-current={item.id === activeFeedbackId ? 'true' : undefined}
                     className={`ai-feedback-item ${item.kind}${item.id === activeFeedbackId ? ' active' : ''}`}
                     key={item.id}
-                    onClick={() => selectFeedback(item.id)}
+                    onClick={() => changeFeedback(item.id)}
                     type="button"
                   >
                     <span className="feedback-indicator" />
                     <span>
                       <b>{item.suggestion}</b>
-                      <small>{item.category}</small>
+                      <small>{item.category}{item.id === activeFeedbackId && <span className="feedback-selected-badge">선택됨</span>}</small>
                     </span>
                   </button>
                 ))}
@@ -369,6 +409,7 @@ export function ReviewWorkspace({ onBack }: { onBack: () => void }) {
                   onClick={() => {
                     setSelection(null)
                     setTeacherText('')
+                    setEditingTeacherId(null)
                     setDrawing(false)
                     setPanelMode('ai')
                   }}
@@ -376,7 +417,7 @@ export function ReviewWorkspace({ onBack }: { onBack: () => void }) {
                   취소
                 </Button>
                 <Button disabled={!selection || !teacherText.trim()} onClick={saveTeacherNote} variant="primary">
-                  코멘트 저장
+                  {editingTeacherId ? '코멘트 수정' : '코멘트 저장'}
                 </Button>
               </div>
               <div className="teacher-saved">
@@ -391,7 +432,7 @@ export function ReviewWorkspace({ onBack }: { onBack: () => void }) {
                     <div className="teacher-saved-item" key={comment.id}>
                       <button
                         className={`teacher-comment-text color-${comment.color}`}
-                        onClick={() => setSelection(comment)}
+                        onClick={() => openTeacherNote(comment)}
                         type="button"
                       >
                         <b>{String(index + 1).padStart(2, '0')}</b>
@@ -400,7 +441,7 @@ export function ReviewWorkspace({ onBack }: { onBack: () => void }) {
                       <button
                         aria-label="교사 코멘트 삭제"
                         className="teacher-delete"
-                        onClick={() => removeTeacherComment(comment.id)}
+                        onClick={() => { removeTeacherComment(comment.id); if (editingTeacherId === comment.id) { setEditingTeacherId(null); setSelection(null); setTeacherText('') } }}
                         type="button"
                       >
                         ×
@@ -424,33 +465,24 @@ export function ReviewWorkspace({ onBack }: { onBack: () => void }) {
         </aside>
       </div>
 
-      {showComplete && (
-        <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setShowComplete(false)} role="presentation">
-          <section aria-labelledby="complete-title" aria-modal="true" className="complete-modal" role="dialog">
-            <button aria-label="닫기" className="modal-close" onClick={() => setShowComplete(false)} type="button">
-              ×
-            </button>
-            <span className="complete-check">✓</span>
-            <span className="eyebrow">REVIEW COMPLETE</span>
-            <h2 id="complete-title">첨삭이 완성됐어요</h2>
-            <p>사진 원본 위에 AI 제안과 선생님의 코멘트를 안전하게 연결했습니다.</p>
-            <div className="complete-stats">
-              <span>
-                <b>{feedbackCount}</b>
-                <small>AI 첨삭</small>
-              </span>
-              <i />
-              <span>
-                <b>{teacherComments.length}</b>
-                <small>교사 코멘트</small>
-              </span>
-            </div>
-            <Button fullWidth onClick={() => setShowComplete(false)} variant="primary">
-              계속 편집하기
-            </Button>
-          </section>
-        </div>
-      )}
+      <section className="print-review">
+        <h1>학습지 첨삭 결과</h1>
+        <p>{useAppStore.getState().imageName} · 로컬 데모</p>
+        {imageUrl && <div className="print-sheet"><img className="print-original" src={imageUrl} alt="학습지 원본" />
+          {feedback.map((item, index) => <div key={item.id} className="print-mark" style={{left: `${item.x}%`, top: `${item.y}%`, width: `${item.width}%`, height: `${item.height}%`, borderColor: item.kind === 'correction' ? '#dc3545' : '#4365e8'}}><b>AI {index + 1}</b></div>)}
+          {teacherComments.map((item, index) => <div key={item.id} className={`print-mark print-${item.style}`} style={{left: `${item.x}%`, top: `${item.y}%`, width: `${item.width}%`, height: `${item.height}%`, color: item.color === 'red' ? '#dc3545' : '#4365e8'}}><b>교사 {index + 1}</b></div>)}
+        </div>}
+        <h2>AI 첨삭</h2>
+        {!feedback.length && <p>이 이미지의 자동 분석 결과는 없습니다. 직접 작성한 교사 코멘트를 확인하세요.</p>}
+        {feedback.map((item, index) => <article key={item.id}>
+          <h3>{index + 1}. {item.category} {appliedFeedbackIds.includes(item.id) ? '(반영됨)' : '(제안)'}</h3>
+          <p>위치: 왼쪽 {Math.round(item.x)}%, 위쪽 {Math.round(item.y)}%</p>
+          <p>원문: {item.original}</p><p>추천: {item.suggestion}</p><p>{item.reason}</p>
+        </article>)}
+        <h2>교사 코멘트</h2>
+        {teacherComments.map((item, index) => <article key={item.id}><h3>{index + 1}. 교사 코멘트</h3>
+          <p>위치: 왼쪽 {Math.round(item.x)}%, 위쪽 {Math.round(item.y)}%</p><p>{item.text}</p></article>)}
+      </section>
     </section>
   )
 }

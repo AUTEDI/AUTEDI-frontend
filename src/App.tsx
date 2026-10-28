@@ -1,3 +1,4 @@
+import sampleWriting from './assets/sample-writing.jpeg'
 import { lazy, Suspense, useEffect } from 'react'
 import { AppShell } from './components/AppShell'
 import { GenerationScreen } from './components/GenerationScreen'
@@ -25,7 +26,7 @@ function App() {
   useEffect(() => {
     if (page !== 'review' || step !== 'generation') return
     let active = true
-    generateReview(sessionSettings)
+    generateReview(sessionSettings, useAppStore.getState().imageUrl === sampleWriting)
       .then(({ feedback }) => {
         if (!active) return
         setFeedback(feedback)
@@ -43,8 +44,7 @@ function App() {
   }, [page, sessionSettings, setFeedback, setStep, showToast, step])
 
   const startReview = () => {
-    setPage('review')
-    setStep('upload')
+    useAppStore.getState().startNewReview()
   }
 
   const startGeneration = () => {

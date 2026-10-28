@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { listReviews, type SavedReview } from '../services/reviewStorage'
 import { Button } from '../design-system/Button'
 import { SettingCard } from '../design-system/SettingCard'
 import type { ReviewSetting } from '../features/review/types'
@@ -9,6 +10,13 @@ type HomeScreenProps = {
 }
 
 export function HomeScreen({ onStart }: HomeScreenProps) {
+  const [savedReviews, setSavedReviews] = useState<SavedReview[]>([])
+  useEffect(() => { let active = true; listReviews().then(items => { if (active) setSavedReviews(items) }).catch(() => { if (active) useAppStore.getState().showToast('저장된 작업을 불러오지 못했어요') }); return () => { active = false } }, [])
+  const openReview = (review: SavedReview) => {
+    useAppStore.setState({ reviewId: review.id, page: 'review', step: 'canvas', imageUrl: review.imageUrl, imageName: review.imageName,
+      feedback: structuredClone(review.feedback), teacherComments: structuredClone(review.teacherComments),
+      appliedFeedbackIds: [...review.appliedFeedbackIds], sessionSettings: structuredClone(review.sessionSettings), activeFeedbackId: review.feedback[0]?.id ?? '' })
+  }
   const defaults = useAppStore((state) => state.defaults)
   const setDefaults = useAppStore((state) => state.setDefaults)
   const showToast = useAppStore((state) => state.showToast)
@@ -93,11 +101,18 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
           <span className="eyebrow">RECENT WORK</span>
           <h2>최근 작업</h2>
         </div>
-        <Button onClick={() => showToast('이력 관리는 곧 열릴 예정이에요')} variant="text">
+        <Button onClick={() => document.getElementById('saved-reviews')?.scrollIntoView({ behavior: 'smooth' })} variant="text">
           전체 보기 <span>→</span>
         </Button>
       </div>
-      <div className="recent-empty">
+      <div id="saved-reviews" className="saved-review-list">
+        {savedReviews.map(review => <div className="recent-empty" key={review.id}>
+          <img width="44" height="58" style={{objectFit: 'contain'}} src={review.imageUrl} alt="저장된 학습지" />
+          <div><b>{review.imageName}</b><small>{new Date(review.savedAt).toLocaleString('ko-KR')} · AI {review.feedback.length}개 · 교사 {review.teacherComments.length}개</small></div>
+          <Button onClick={() => openReview(review)} variant="secondary">계속 편집</Button>
+        </div>)}
+      </div>
+      {!savedReviews.length && <div className="recent-empty">
         <span className="empty-icon">✎</span>
         <div>
           <b>아직 저장된 첨삭이 없어요</b>
@@ -106,7 +121,7 @@ export function HomeScreen({ onStart }: HomeScreenProps) {
         <Button onClick={onStart} variant="secondary">
           첫 첨삭 시작하기
         </Button>
-      </div>
+      </div>}
 
       {editing && (
         <div
