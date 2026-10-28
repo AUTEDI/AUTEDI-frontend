@@ -2333,8 +2333,8 @@
 @media print {
   .print-sheet { position: relative; width: fit-content; max-width: 100%; margin: auto; break-after: page; }
   .print-original { width: auto; height: auto; break-after: auto; }
-  .print-mark { position: absolute; border: 1.5px solid; color: #4365e8; background: #4365e815; box-sizing: border-box; }
-  .print-mark b { position: absolute; left: 0; top: -13px; white-space: nowrap; font-size: 8pt; background: white; line-height: 1.1; }
+  .print-mark { position: absolute; border: 1.5px solid; color: #4365e8; background: transparent; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .print-mark b { position: absolute; left: 0; top: -13px; white-space: nowrap; font-size: 8pt; background: transparent; line-height: 1.1; }
   .print-underline { border-width: 0 0 2px; background: none; }
   .print-highlight { background: #ffdc0040; }
   .print-arrow { border-width: 0 0 2px; background: none; }
