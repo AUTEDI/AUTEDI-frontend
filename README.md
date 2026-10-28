@@ -132,3 +132,5 @@ API 응답에서 최소한 아래 데이터의 의미와 필수 여부를 정해
 - 브라우저 사이트 데이터를 삭제하면 저장 작업도 삭제됩니다. 서버나 외부 API로 전송하지 않습니다.
 
 검증: `node --test tests/review.test.mjs`, `npm run lint`, `npm run build`
+
+버셀 배포용 수정 커밋
