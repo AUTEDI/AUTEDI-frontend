@@ -1,0 +1,54 @@
+:root {
+  font-family: Inter, Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+  color: #191b32;
+  background: #f5f6fb;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+
+  --color-ink: #191b32;
+  --color-muted: #777b91;
+  --color-line: #e8e9f1;
+  --color-surface: #fff;
+  --color-canvas: #f5f6fb;
+  --color-primary: #5867e8;
+  --color-primary-dark: #4353d2;
+  --color-primary-soft: #eff0ff;
+  --color-navy: #171a31;
+  --color-success: #23896c;
+  --color-danger: #d45e6d;
+  --shadow-card: 0 18px 48px rgb(27 34 79 / 8%);
+  --radius-card: 18px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--color-canvas);
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgb(88 103 232 / 35%);
+  outline-offset: 2px;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
