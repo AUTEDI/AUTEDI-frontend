@@ -11,7 +11,62 @@
 
 ## 기술 스택
 
-React 19 · TypeScript · Vite · ESLint · Vercel
+React 19 · TypeScript · Vite · Tailwind CSS 4 · Zustand · ESLint · Vercel
+
+## 실행
+
+```bash
+npm install
+npm run dev
+```
+
+개발 서버는 `http://localhost:5173`에서 열립니다. 포트가 이미 사용 중이면 다른 포트로 바꾸지 않고 실행을 멈추니, 기존 서버를 끄고 다시 실행하세요.
+
+API 설정은 `.env.example`을 복사한 `.env`에 적습니다. `VITE_API_MODE`를 비워 두면 백엔드 없이 예시 데이터로 동작합니다.
+
+| 변수 | 설명 |
+| --- | --- |
+| `VITE_API_MODE` | `live`면 실제 API 호출(로그인 필요), 비우면 예시 데이터 |
+| `VITE_API_BASE_URL` | 백엔드 주소. 비워 두면 같은 주소의 `/api/v1`로 요청 |
+| `VITE_API_PROXY_TARGET` | 로컬 개발 시 `/api` 요청을 넘길 백엔드 주소 (CORS 없이 테스트) |
+
+로컬에서 백엔드와 붙여 볼 때의 `.env` 예시:
+
+```bash
+VITE_API_MODE=live
+VITE_API_PROXY_TARGET=http://localhost:8080
+```
+
+## API 연동 범위
+
+[API 명세서 v1](https://www.notion.so/API-v1-4070cb0f06a680cc8eafe24c6c60cf21) 기준입니다.
+
+| 화면 동작 | API |
+| --- | --- |
+| 로그인·로그아웃·새로고침 후 복원 | `POST /auth/login`, `POST /auth/logout`, `GET /users/me` |
+| 토큰 만료 시 자동 재발급 후 재요청 | `POST /auth/refresh` |
+| 학습지 업로드 | `POST /worksheets` |
+| 첨삭 시작 | `PUT /worksheets/{id}/settings` → `POST .../generations` → `GET .../generations/{genId}` 반복 |
+| 검토 화면 | `GET /worksheets/{id}/review` |
+| 추천 문장 수정 / 삭제 / 삭제 되돌리기 | `PATCH` / `DELETE` / `POST .../restore` (`If-Match` 사용) |
+| 교사 코멘트 저장 / 삭제 | `POST /worksheets/{id}/comments` / `DELETE .../comments/{id}` |
+
+아직 API가 없어 화면에서만 동작하는 기능(새로고침하면 사라짐): 피드백 반영 표시, AI 표시·코멘트 위치 이동과 크기 조절, 교사 표시 중 화살표·네모·삽입 표시, 교사 표시 색, 2페이지 이후 화면.
+
+## 폴더 구조
+
+```text
+src/
+  apis/         API 클라이언트(/api/v1, 토큰 재발급, ETag), 에러 코드, 엔드포인트,
+                응답 변환(mappers), 화면용 서비스(reviewService: 실제/예시 구현)
+  components/   common(버튼·모달 등) · layout · home · review-flow(업로드~생성) · review(검토 화면)
+  constants/    첨삭 설정, 단계 문구, 예시 첨삭 데이터
+  hooks/        드래그 같은 공통 훅
+  pages/        LoginPage, HomePage, ReviewPage
+  stores/       Zustand 상태 (인증, 앱 전체, 검토 화면)
+  types/        도메인 타입
+  utils/        좌표 계산, className 도우미
+```
 
 ## 협업 규칙
 
@@ -34,7 +89,8 @@ PR 전에 `npm run lint`, `npm run build`가 통과해야 합니다.
 
 **코딩 컨벤션**
 
-- 컴포넌트·파일·타입명은 PascalCase, 함수·변수명은 camelCase, CSS 클래스명은 kebab-case
+- 컴포넌트·파일·타입명은 PascalCase, 함수·변수명은 camelCase
+- 스타일은 Tailwind 유틸리티 클래스로 작성하고, 공통 색·그림자·기준점은 `src/index.css`의 `@theme` 토큰을 쓴다
 - `any` 사용을 피하고 필요한 타입을 명시
 - 재사용 UI는 `components`, 화면은 `pages`, API 요청 코드는 `apis` 폴더에서 관리
 
