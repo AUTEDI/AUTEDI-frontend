@@ -1,5 +1,85 @@
-@import './design-system/tokens.css';
+@import 'tailwindcss';
 
-#root {
-  min-height: 100vh;
+@theme {
+  /* 반응형 기준점: 기획 프로토타입의 max-width 760 / 1050 / 1180px 규칙과 맞춘다. */
+  --breakpoint-*: initial;
+  --breakpoint-sm: 47.5625rem; /* 761px 이상 */
+  --breakpoint-md: 65.6875rem; /* 1051px 이상 */
+  --breakpoint-lg: 73.8125rem; /* 1181px 이상 */
+
+  --font-sans: Inter, Pretendard, 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-hand: 'Bradley Hand', 'Segoe Print', 'Comic Sans MS', cursive;
+
+  --color-ink: #16182a;
+  --color-line: #e7e8f0;
+  --color-canvas: #f4f5fa;
+  --color-navy: #191e3d;
+
+  /* 첨삭 종류별 색: 오류 수정은 빨강, 개선 제안은 파랑 */
+  --color-correction: #ff3e5b;
+  --color-correction-ink: #f02f50;
+  --color-improvement: #347cff;
+  --color-improvement-ink: #176dff;
+  --color-applied: #18ae84;
+
+  --shadow-card: 0 12px 36px rgb(31 39 90 / 0.05);
+  --shadow-primary: 0 10px 24px rgb(60 76 203 / 0.24);
+  --shadow-modal: 0 20px 55px rgb(26 34 83 / 0.1);
+
+  --animate-fade-page: fade 0.35s ease;
+  --animate-fade-step: fade 0.3s ease;
+  --animate-fade-detail: fade 0.22s ease;
+  --animate-scan: scan 2s ease-in-out infinite;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes scan {
+  0%,
+  100% {
+    top: 24px;
+  }
+  50% {
+    top: 151px;
+  }
+}
+
+@utility bg-primary-gradient {
+  background-image: linear-gradient(135deg, #7476f4, #4055d8);
+}
+
+@layer base {
+  /* Tailwind 기본값(1.5) 대신 기획 화면의 브라우저 기본 줄높이를 쓴다. */
+  html {
+    line-height: normal;
+  }
+
+  body {
+    min-width: 320px;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  button:not(:disabled),
+  label[for] {
+    cursor: pointer;
+  }
+
+  /* 기본 글자 크기를 쓰는 h1~h3는 기획 화면처럼 굵게 표시한다. */
+  h1,
+  h2,
+  h3 {
+    font-weight: 700;
+  }
 }
