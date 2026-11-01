@@ -1,3 +1,4 @@
+import { API_BASE_URL } from './config'
 import { ApiError, toApiError } from './errors'
 import { tokenStorage } from './tokenStorage'
 import type { TokenPair } from './types'
@@ -5,7 +6,7 @@ import type { TokenPair } from './types'
 /** 모든 API 경로 앞에 붙는 접두사 (API 명세 공통 기준) */
 export const API_PREFIX = '/api/v1'
 
-const API_BASE_URL = `${(import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '')}${API_PREFIX}`
+const API_URL = `${API_BASE_URL}${API_PREFIX}`
 
 /** 토큰을 재발급할 수 없어 다시 로그인해야 할 때 부른다. */
 let onAuthLost: (() => void) | null = null
@@ -72,7 +73,7 @@ async function send(path: string, { method = 'GET', body, ifMatch, headers: extr
   }
 
   try {
-    return await fetch(`${API_BASE_URL}${path}`, { method, headers, body: payload, signal })
+    return await fetch(`${API_URL}${path}`, { method, headers, body: payload, signal })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error
     throw new ApiError({ status: 0, code: 'NETWORK_ERROR' })

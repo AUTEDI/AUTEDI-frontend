@@ -22,20 +22,15 @@ npm run dev
 
 개발 서버는 `http://localhost:5173`에서 열립니다. 포트가 이미 사용 중이면 다른 포트로 바꾸지 않고 실행을 멈추니, 기존 서버를 끄고 다시 실행하세요.
 
-API 설정은 `.env.example`을 복사한 `.env`에 적습니다. `VITE_API_MODE`를 비워 두면 백엔드 없이 예시 데이터로 동작합니다.
-
-| 변수 | 설명 |
-| --- | --- |
-| `VITE_API_MODE` | `live`면 실제 API 호출(로그인 필요), 비우면 예시 데이터 |
-| `VITE_API_BASE_URL` | 백엔드 주소. 비워 두면 같은 주소의 `/api/v1`로 요청 |
-| `VITE_API_PROXY_TARGET` | 로컬 개발 시 `/api` 요청을 넘길 백엔드 주소 (CORS 없이 테스트) |
-
-로컬에서 백엔드와 붙여 볼 때의 `.env` 예시:
+환경 변수는 `.env.example`을 복사한 `.env`에 적습니다. 값은 하나뿐입니다.
 
 ```bash
-VITE_API_MODE=live
-VITE_API_PROXY_TARGET=http://localhost:8080
+VITE_API_BASE_URL=https://autedi-mvp.duckdns.org
 ```
+
+- 값이 있으면 실제 백엔드(`{주소}/api/v1`)를 호출하고 로그인 화면부터 시작합니다.
+- 비워 두면 백엔드 없이 예시 데이터로 동작합니다(로그인 없음, 시연용).
+- Vercel에서는 Settings → Environment Variables에 같은 이름으로 넣고 다시 배포해야 적용됩니다.
 
 ## API 연동 범위
 
