@@ -1,5 +1,6 @@
 import type { ComponentType, SVGProps } from 'react'
 import { USE_LIVE_API } from '../../apis/config'
+import autediIcon from '../../images/pavicon.ico'
 import { useAppStore, type Page } from '../../stores/useAppStore'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { cn } from '../../utils/cn'
@@ -57,14 +58,14 @@ export function Sidebar() {
           navigate('home')
         }}
       >
-        <span
+        <img
+          alt=""
           className={cn(
-            'grid size-8 place-items-center rounded-[10px] bg-[linear-gradient(135deg,#8985ff,#4055d4)] font-serif text-[19px] font-bold shadow-[0_8px_24px_rgba(73,80,214,0.38)]',
-            collapsed && 'hidden max-sm:grid',
+            'size-8 shrink-0 object-contain',
+            collapsed && 'hidden max-sm:block',
           )}
-        >
-          A
-        </span>
+          src={autediIcon}
+        />
         <b className={collapsed ? 'hidden max-sm:inline' : 'sm:max-md:hidden'}>AUTEDI</b>
       </a>
       <button

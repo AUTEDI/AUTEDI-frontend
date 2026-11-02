@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Button } from '../components/common/Button'
+import autediIcon from '../images/pavicon.ico'
 import { useAuthStore } from '../stores/useAuthStore'
 
 const INPUT =
@@ -31,9 +32,7 @@ export function LoginPage() {
         onSubmit={submit}
       >
         <div className="mb-6 flex items-center gap-[10px]">
-          <span className="grid size-8 place-items-center rounded-[10px] bg-[linear-gradient(135deg,#8985ff,#4055d4)] font-serif text-[19px] font-bold text-white shadow-[0_8px_24px_rgba(73,80,214,0.38)]">
-            A
-          </span>
+          <img alt="" className="size-8 shrink-0 object-contain" src={autediIcon} />
           <b className="font-[850] tracking-[1.8px]">AUTEDI</b>
         </div>
         <h1 className="mb-1.5 text-[21px] tracking-[-0.8px]">선생님 로그인</h1>
