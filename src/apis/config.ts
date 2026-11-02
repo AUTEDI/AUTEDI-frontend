@@ -1,4 +1,4 @@
-/** 백엔드 주소 (끝의 / 제외). 예) https://autedi-mvp.duckdns.org */
+/** 백엔드 주소 (끝의 / 제외). 예) https://autedi-backend-production.up.railway.app */
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/+$/, '')
 
 /**

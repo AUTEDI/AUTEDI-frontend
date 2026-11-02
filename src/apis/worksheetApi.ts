@@ -12,8 +12,8 @@ export const worksheetApi = {
   },
   get: (worksheetId: number) => api.get<WorksheetDto>(worksheet(worksheetId)),
 
-  saveSettings: (worksheetId: number, areas: AreaSetting[], ifMatch: string | null) =>
-    api.put<{ areas: AreaSetting[] }>(`${worksheet(worksheetId)}/settings`, { areas }, { ifMatch }),
+  saveSettings: (worksheetId: number, settings: AreaSetting[], ifMatch: string | null) =>
+    api.put<{ etag: string; areas: AreaSetting[] }>(`${worksheet(worksheetId)}/settings`, { settings }, { ifMatch }),
 
   startGeneration: (worksheetId: number, idempotencyKey: string) =>
     api.post<GenerationDto>(`${worksheet(worksheetId)}/generations`, undefined, {

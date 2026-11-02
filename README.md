@@ -25,7 +25,7 @@ npm run dev
 환경 변수는 `.env.example`을 복사한 `.env`에 적습니다. 값은 하나뿐입니다.
 
 ```bash
-VITE_API_BASE_URL=https://autedi-mvp.duckdns.org
+VITE_API_BASE_URL=https://autedi-backend-production.up.railway.app
 ```
 
 - 값이 있으면 실제 백엔드(`{주소}/api/v1`)를 호출하고 로그인 화면부터 시작합니다.

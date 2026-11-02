@@ -67,7 +67,8 @@ async function waitForGeneration(worksheetId: number, generation: GenerationDto,
   const startedAt = Date.now()
   let current = generation
   while (current.status !== 'SUCCEEDED') {
-    if (/FAIL|CANCEL/.test(current.status)) {
+    if (current.status === 'FAILED') {
+      // 서버가 알려준 원인(AI_TIMEOUT 등)의 안내 문구를 그대로 보여준다.
       throw new ApiError({
         status: 0,
         code: 'UNKNOWN_ERROR',
@@ -136,9 +137,11 @@ const liveService: ReviewService = {
   generateReview: async ({ worksheet, settings, signal }) => {
     assertSettings(settings)
     const worksheetId = requireId(worksheet.worksheetId)
-    // 첨삭이 끝난(READY) 학습지는 설정을 바꿀 수 없으므로 결과만 다시 연다.
+    // 첨삭이 끝난(READY) 학습지는 결과만 다시 열고, 생성 중(PROCESSING)이면 설정을 바꿀 수 없으므로 기다리기만 한다.
     if (worksheet.status !== 'READY') {
-      await worksheetApi.saveSettings(worksheetId, toAreaSettings(settings), worksheet.settingsEtag)
+      if (worksheet.status !== 'PROCESSING') {
+        await worksheetApi.saveSettings(worksheetId, toAreaSettings(settings), worksheet.settingsEtag)
+      }
       await startAndWait(worksheetId, signal)
     }
     return loadReview(worksheetId)

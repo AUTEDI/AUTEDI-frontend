@@ -14,7 +14,8 @@ export type LevelCode = 'STANDARD' | 'ADVANCED'
 
 export type AreaSetting = { area: AreaCode; level: LevelCode }
 
-export type WorksheetStatus = 'DRAFT' | 'READY' | 'FAILED' | (string & {})
+/** 학습지 상태: 업로드 직후 DRAFT, 생성 중 PROCESSING, 완료 READY, 실패 FAILED */
+export type WorksheetStatus = 'DRAFT' | 'PROCESSING' | 'READY' | 'FAILED'
 
 /** 페이지 이미지 기준 0~1 좌표 */
 export type RegionDto = {
@@ -53,20 +54,25 @@ export type WorksheetDto = {
   updatedAt: string
 }
 
-export type GenerationStatus = 'SUCCEEDED' | 'FAILED' | (string & {})
+/** 생성 작업 상태. PENDING·RUNNING이면 계속 조회하고, SUCCEEDED·FAILED면 멈춘다. */
+export type GenerationStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED'
+
+/** 생성 세부 단계 */
+export type GenerationStage = 'QUEUED' | 'OCR' | 'AI_CORRECTION' | 'COMPLETED'
 
 export type GenerationDto = {
   id: number
   worksheetId: number
   status: GenerationStatus
-  stage: string
+  stage: GenerationStage
   attempt: number
   retryOfGenerationId: number | null
   settingsSnapshot: AreaSetting[]
   createdAt: string
   startedAt: string | null
   finishedAt: string | null
-  error: { code?: string; message?: string; retryable?: boolean } | null
+  /** 실패 시 원인. code 예: AI_TIMEOUT, AI_MODEL_ERROR, OCR_FAILED */
+  error: { code: string; message: string; retryable: boolean } | null
 }
 
 export type CorrectionStatus = 'ACTIVE' | 'DELETED'

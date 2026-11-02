@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: ko-KR
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+  path_filters:
+    - "!package-lock.json"
+    - "!dist/**"
+  path_instructions:
+    - path: "src/**/*.{ts,tsx}"
+      instructions: |
+        - 컴포넌트·파일·타입명은 PascalCase, 함수·변수명은 camelCase를 사용하는지 확인합니다.
+        - `any` 사용 여부를 확인하고, 필요한 타입이 명시되어 있는지 봅니다.
+        - 재사용 가능한 UI는 `components`, 화면은 `pages`에 있는지 확인합니다.
+        - API 요청 코드가 화면 컴포넌트에 직접 반복 작성되지 않고 `apis` 폴더에 있는지 확인합니다.
+        - 사소한 스타일 지적보다 버그, 타입 오류, 불필요한 리렌더링 같은 실제 문제를 우선합니다.
+    - path: "src/**/*.css"
+      instructions: |
+        - CSS 클래스명은 kebab-case를 사용하는지 확인합니다.
+
+chat:
+  auto_reply: true
