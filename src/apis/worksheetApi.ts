@@ -12,8 +12,9 @@ export const worksheetApi = {
   },
   get: (worksheetId: number) => api.get<WorksheetDto>(worksheet(worksheetId)),
 
-  saveSettings: (worksheetId: number, settings: AreaSetting[], ifMatch: string | null) =>
-    api.put<{ etag: string; areas: AreaSetting[] }>(`${worksheet(worksheetId)}/settings`, { settings }, { ifMatch }),
+  // 노션 예시는 settings 키로 바뀌어 있지만 실제 서버는 areas 키를 검증한다.
+  saveSettings: (worksheetId: number, areas: AreaSetting[], ifMatch: string | null) =>
+    api.put<{ etag: string; areas: AreaSetting[] }>(`${worksheet(worksheetId)}/settings`, { areas }, { ifMatch }),
 
   startGeneration: (worksheetId: number, idempotencyKey: string) =>
     api.post<GenerationDto>(`${worksheet(worksheetId)}/generations`, undefined, {

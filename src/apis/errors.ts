@@ -79,23 +79,32 @@ function getDefaultMessage(code: ApiErrorCode | ClientErrorCode) {
 
 /**
  * 에러 응답 본문에서 code와 message를 꺼낸다.
- * 학습지 API는 { isSuccess, code, message, error }, 인증 API는 { code, message, status } 형식이라
  * 최상위 값을 먼저 보고, 없으면 error 객체 안을 본다.
+ * 입력값 검증 실패는 error에 ["areas: 최소 한 개 이상..."] 같은 상세 사유 배열이 온다.
  */
-function readErrorBody(body: unknown): { code?: unknown; message?: unknown } {
-  if (typeof body !== 'object' || body === null) return {}
+function readErrorBody(body: unknown): { code?: unknown; message?: unknown; details: string[] } {
+  if (typeof body !== 'object' || body === null) return { details: [] }
   const record = body as Record<string, unknown>
-  const nested = typeof record.error === 'object' && record.error !== null ? (record.error as Record<string, unknown>) : {}
-  return { code: record.code ?? nested.code, message: record.message ?? nested.message }
+  const { error } = record
+  const details = Array.isArray(error) ? error.filter((item): item is string => typeof item === 'string') : []
+  const nested = typeof error === 'object' && error !== null && !Array.isArray(error) ? (error as Record<string, unknown>) : {}
+  return { code: record.code ?? nested.code, message: record.message ?? nested.message, details }
+}
+
+/** "areas: 메시지" 형식에서 필드 이름을 떼고 사용자에게 보여줄 문장만 남긴다. */
+function detailMessage(detail: string) {
+  const separator = detail.indexOf(': ')
+  return separator >= 0 ? detail.slice(separator + 2) : detail
 }
 
 export function toApiError(status: number, body: unknown) {
-  const { code, message } = readErrorBody(body)
+  const { code, message, details } = readErrorBody(body)
   const knownCode = isApiErrorCode(code) ? code : null
   return new ApiError({
     status,
     code: knownCode ?? 'UNKNOWN_ERROR',
-    message: typeof message === 'string' && message ? message : undefined,
+    // 상세 사유가 있으면 "요청 값이 올바르지 않습니다"보다 구체적인 사유를 보여준다.
+    message: details[0] ? detailMessage(details[0]) : typeof message === 'string' && message ? message : undefined,
     rawCode: typeof code === 'string' && !knownCode ? code : null,
   })
 }
