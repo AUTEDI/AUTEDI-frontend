@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { API_ERROR_MESSAGES, getErrorMessage } from '../apis/errors'
+import { ApiError, getErrorMessage } from '../apis/errors'
 import { reviewService, type UploadedWorksheet } from '../apis/reviewService'
 import { SAMPLE_FILE_NAME } from '../constants/sampleReview'
 import { BASE_SETTINGS, DEFAULT_SETTINGS_STORAGE_KEY, cloneSettings } from '../constants/settings'
@@ -8,6 +8,7 @@ import type { FeedbackSetting, FlowStep } from '../types/review'
 export type Page = 'home' | 'ai'
 
 export type UploadedFile = {
+  id: string
   name: string
   meta: string
   worksheet: UploadedWorksheet
@@ -24,7 +25,8 @@ type AppState = {
   toast: Toast | null
   defaults: FeedbackSetting[]
   sessionSettings: FeedbackSetting[]
-  upload: UploadedFile | null
+  uploads: UploadedFile[]
+  activeUploadId: string | null
   uploading: boolean
   navigate: (page: Page) => void
   setStep: (step: FlowStep) => void
@@ -34,11 +36,12 @@ type AppState = {
   saveDefaults: (settings: FeedbackSetting[]) => boolean
   resetSessionSettings: () => void
   updateSessionSetting: (setting: FeedbackSetting) => void
-  loadFile: (file: File) => Promise<void>
+  loadFiles: (files: File[]) => Promise<void>
   loadSample: () => Promise<void>
-  removeFile: () => void
+  selectUpload: (id: string) => void
+  removeFile: (id: string) => void
   /** 첨삭이 끝난 학습지는 다시 생성하지 않고 결과만 연다. */
-  markWorksheetReady: () => void
+  markWorksheetReady: (id: string) => void
 }
 
 const ACCEPTED_FILE_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
@@ -73,16 +76,32 @@ function readStoredDefaults() {
 const initialDefaults = readStoredDefaults()
 
 export const useAppStore = create<AppState>()((set, get) => {
-  /** 업로드 요청을 보내고 결과를 반영한다. 업로드 중에는 다른 업로드를 받지 않는다. */
-  const upload = async (request: () => Promise<UploadedWorksheet>, name: string, meta: string) => {
+  /** 파일별 요청을 순서대로 보내고 성공한 파일은 유지한다. */
+  const upload = async (requests: { request: () => Promise<UploadedWorksheet>; name: string; meta: string }[]) => {
+    if (!requests.length) return
     if (get().uploading) return
     set({ uploading: true })
+    let succeeded = 0
+    const failures: string[] = []
     try {
-      const worksheet = await request()
-      set({ upload: { name, meta, worksheet } })
-      get().showToast('학습지 사진을 안전하게 불러왔어요')
-    } catch (error) {
-      get().showToast(getErrorMessage(error, '학습지를 올리지 못했어요. 잠시 후 다시 시도해주세요.'))
+      for (const { request, name, meta } of requests) {
+        try {
+          const worksheet = await request()
+          const file = { id: crypto.randomUUID(), name, meta, worksheet }
+          succeeded += 1
+          set((state) => ({
+            uploads: [...state.uploads, file],
+            activeUploadId: succeeded === 1 ? file.id : state.activeUploadId,
+          }))
+        } catch (error) {
+          failures.push(`${name}: ${getErrorMessage(error, '학습지를 올리지 못했어요. 잠시 후 다시 시도해주세요.')}`)
+        }
+      }
+      get().showToast(
+        failures.length
+          ? `${succeeded}개 업로드 완료 · ${failures.length}개 실패. ${failures[0]}`
+          : `학습지 ${succeeded}개를 불러왔어요`,
+      )
     } finally {
       set({ uploading: false })
     }
@@ -95,7 +114,8 @@ export const useAppStore = create<AppState>()((set, get) => {
     toast: null,
     defaults: initialDefaults,
     sessionSettings: cloneSettings(initialDefaults),
-    upload: null,
+    uploads: [],
+    activeUploadId: null,
     uploading: false,
 
     navigate: (page) => {
@@ -127,27 +147,40 @@ export const useAppStore = create<AppState>()((set, get) => {
         sessionSettings: state.sessionSettings.map((setting) => (setting.id === next.id ? next : setting)),
       })),
 
-    loadFile: async (file) => {
-      // 서버와 같은 기준으로 먼저 확인해 불필요한 업로드를 줄인다.
-      if (!ACCEPTED_FILE_TYPES.includes(file.type)) {
-        get().showToast(API_ERROR_MESSAGES.FILE_002)
-        return
-      }
-      if (file.size === 0) {
-        get().showToast(API_ERROR_MESSAGES.FILE_001)
-        return
-      }
-      await upload(
-        () => reviewService.uploadWorksheet(file),
-        file.name,
-        `${(file.size / 1024 / 1024).toFixed(1)} MB · 준비 완료`,
-      )
+    loadFiles: (files) => upload(files.map((file) => ({
+      request: async () => {
+        if (!ACCEPTED_FILE_TYPES.includes(file.type)) throw new ApiError({ status: 400, code: 'FILE_002' })
+        if (file.size === 0) throw new ApiError({ status: 400, code: 'FILE_001' })
+        return reviewService.uploadWorksheet(file)
+      },
+      name: file.name,
+      meta: `${(file.size / 1024 / 1024).toFixed(1)} MB · 준비 완료`,
+    }))),
+    loadSample: () => upload([{
+      request: () => reviewService.uploadSample(),
+      name: SAMPLE_FILE_NAME,
+      meta: '예시 사진 · 준비 완료',
+    }]),
+    selectUpload: (id) => {
+      if (get().uploads.some((file) => file.id === id)) set({ activeUploadId: id })
     },
-    loadSample: () => upload(() => reviewService.uploadSample(), SAMPLE_FILE_NAME, '예시 사진 · 준비 완료'),
-    removeFile: () => set({ upload: null }),
-    markWorksheetReady: () =>
-      set((state) =>
-        state.upload ? { upload: { ...state.upload, worksheet: { ...state.upload.worksheet, status: 'READY' } } } : {},
-      ),
+    removeFile: (id) => {
+      if (get().uploading) return
+      set((state) => {
+        const index = state.uploads.findIndex((file) => file.id === id)
+        const uploads = state.uploads.filter((file) => file.id !== id)
+        return {
+          uploads,
+          activeUploadId: state.activeUploadId === id
+            ? (uploads[Math.min(index, uploads.length - 1)]?.id ?? null)
+            : state.activeUploadId,
+        }
+      })
+    },
+    markWorksheetReady: (id) => set((state) => ({
+      uploads: state.uploads.map((file) => file.id === id
+        ? { ...file, worksheet: { ...file.worksheet, status: 'READY' } }
+        : file),
+    })),
   }
 })

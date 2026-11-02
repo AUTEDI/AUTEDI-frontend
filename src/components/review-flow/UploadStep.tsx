@@ -1,11 +1,12 @@
 import { SAMPLE_WORKSHEET_URL } from '../../constants/sampleReview'
-import { useAppStore, type UploadedFile } from '../../stores/useAppStore'
+import { useAppStore } from '../../stores/useAppStore'
 import type { FeedbackSetting } from '../../types/review'
 import { cn } from '../../utils/cn'
 import { Button } from '../common/Button'
 import { PresetList } from '../common/PresetList'
 import { Dropzone } from './Dropzone'
 import { FlowActions } from './FlowActions'
+import { UploadPreview } from './UploadPreview'
 
 function SampleUploadButton({ disabled, onClick }: { disabled: boolean; onClick: () => void }) {
   return (
@@ -27,29 +28,7 @@ function SampleUploadButton({ disabled, onClick }: { disabled: boolean; onClick:
   )
 }
 
-function FileReadyCard({ upload, onRemove }: { upload: UploadedFile; onRemove: () => void }) {
-  return (
-    <div className="flex w-[min(520px,90%)] items-center gap-[10px] self-center justify-self-center rounded-xl border border-[#e8eaf1] bg-[#f6f7fb] p-[18px] text-left">
-      <span className="h-[90px] w-[75px] flex-none overflow-hidden rounded-lg bg-white">
-        <img alt="업로드 파일" className="size-full bg-white object-contain" src={upload.worksheet.imageUrl} />
-      </span>
-      <div className="grid gap-[3px]">
-        <b className="text-[9px]">{upload.name}</b>
-        <small className="text-[7px] text-[#aeb4ca]">{upload.meta}</small>
-      </div>
-      <button
-        aria-label="파일 삭제"
-        className="ml-auto size-6 shrink-0 rounded-full bg-[#e8eaf1] text-[#767b8d]"
-        onClick={onRemove}
-        type="button"
-      >
-        ×
-      </button>
-    </div>
-  )
-}
-
-function AppliedSettingsCard({ settings, onChange }: { settings: FeedbackSetting[]; onChange: () => void }) {
+function AppliedSettingsCard({ settings, onChange, disabled }: { settings: FeedbackSetting[]; onChange: () => void; disabled: boolean }) {
   return (
     <aside className="rounded-[18px] border border-line bg-white p-6 shadow-card max-sm:mt-3">
       <div className="flex items-start justify-between">
@@ -58,7 +37,7 @@ function AppliedSettingsCard({ settings, onChange }: { settings: FeedbackSetting
       </div>
       <p className="mt-px mb-[17px] text-[9px] text-[#8a8fa0]">저장된 기본 설정이 자동으로 적용됩니다.</p>
       <PresetList className="my-5" settings={settings} />
-      <Button className="w-full" onClick={onChange}>
+      <Button className="w-full disabled:opacity-50" disabled={disabled} onClick={onChange}>
         이번 첨삭에서만 변경
       </Button>
       <div className="mt-3 text-center text-[7px] text-[#9b9fac]">
@@ -74,36 +53,46 @@ type UploadStepProps = {
 }
 
 export function UploadStep({ onCustomize, onStart }: UploadStepProps) {
-  const upload = useAppStore((state) => state.upload)
+  const uploads = useAppStore((state) => state.uploads)
+  const activeUploadId = useAppStore((state) => state.activeUploadId)
+  const selectUpload = useAppStore((state) => state.selectUpload)
   const defaults = useAppStore((state) => state.defaults)
   const uploading = useAppStore((state) => state.uploading)
-  const loadFile = useAppStore((state) => state.loadFile)
+  const loadFiles = useAppStore((state) => state.loadFiles)
   const loadSample = useAppStore((state) => state.loadSample)
   const removeFile = useAppStore((state) => state.removeFile)
   const navigate = useAppStore((state) => state.navigate)
 
   return (
-    <div className="grid animate-fade-step grid-cols-[1fr_355px] gap-[18px] max-md:grid-cols-[1fr_310px] max-sm:block">
+    <div className="grid animate-fade-step grid-cols-[minmax(0,1fr)_355px] gap-[18px] max-md:grid-cols-[minmax(0,1fr)_310px] max-sm:block">
       <div
         className={cn(
-          'grid min-h-[515px] gap-3 rounded-[18px] border border-line bg-white p-5 shadow-card max-sm:min-h-[420px]',
-          upload ? 'grid-rows-[1fr]' : 'grid-rows-[1fr_auto_auto]',
+          'grid min-h-[515px] min-w-0 gap-3 rounded-[18px] border border-line bg-white p-5 shadow-card max-sm:min-h-[420px]',
+          uploads.length ? 'grid-rows-[1fr]' : 'grid-rows-[1fr_auto_auto]',
         )}
       >
-        {upload ? (
-          <FileReadyCard onRemove={removeFile} upload={upload} />
+        {uploads.length ? (
+          <UploadPreview
+            uploads={uploads}
+            activeUploadId={activeUploadId}
+            uploading={uploading}
+            onSelect={selectUpload}
+            onRemove={removeFile}
+            onFiles={(files) => void loadFiles(files)}
+          />
         ) : (
           <>
-            <Dropzone onFile={(file) => void loadFile(file)} uploading={uploading} />
+            <Dropzone onFiles={(files) => void loadFiles(files)} uploading={uploading} />
             <SampleUploadButton disabled={uploading} onClick={() => void loadSample()} />
           </>
         )}
       </div>
-      <AppliedSettingsCard onChange={onCustomize} settings={defaults} />
+      <AppliedSettingsCard disabled={uploading} onChange={onCustomize} settings={defaults} />
+      {uploads.length > 1 && <p className="col-span-full text-[10px] text-[#8a8fa0]">현재 미리보기 중인 파일을 첨삭합니다.</p>}
       <FlowActions>
         <Button onClick={() => navigate('home')}>취소</Button>
-        <Button disabled={!upload || uploading} onClick={onStart} variant="primary">
-          기본 설정으로 첨삭 시작 <b className="ml-2">✦</b>
+        <Button disabled={!uploads.length || uploading} onClick={onStart} variant="primary">
+          {uploads.length > 1 ? '선택한 파일 첨삭 시작' : '기본 설정으로 첨삭 시작'} <b className="ml-2">✦</b>
         </Button>
       </FlowActions>
     </div>

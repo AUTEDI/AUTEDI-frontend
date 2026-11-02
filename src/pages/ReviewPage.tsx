@@ -23,8 +23,9 @@ export function ReviewPage() {
   useEffect(() => () => generation.current?.abort(), [])
 
   const runGeneration = async (settings: FeedbackSetting[]) => {
-    const upload = useAppStore.getState().upload
-    if (!upload) return
+    const { uploads, activeUploadId, uploading } = useAppStore.getState()
+    const upload = uploads.find((file) => file.id === activeUploadId)
+    if (!upload || uploading) return
     if (!settings.some((setting) => setting.selected)) {
       showToast('첨삭 영역을 한 가지 이상 선택해주세요')
       return
@@ -40,7 +41,7 @@ export function ReviewPage() {
         signal: controller.signal,
       })
       if (controller.signal.aborted || useAppStore.getState().step !== 'generation') return
-      markWorksheetReady()
+      markWorksheetReady(upload.id)
       startReview(review)
       setStep('review')
     } catch (error) {

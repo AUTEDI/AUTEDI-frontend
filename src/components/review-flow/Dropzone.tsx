@@ -4,7 +4,7 @@ import { UploadIcon } from '../layout/icons'
 
 const INPUT_ID = 'worksheet-file-input'
 
-export function Dropzone({ onFile, uploading }: { onFile: (file: File) => void; uploading: boolean }) {
+export function Dropzone({ onFiles, uploading }: { onFiles: (files: File[]) => void; uploading: boolean }) {
   const [dragging, setDragging] = useState(false)
 
   const stopDrag = (event: DragEvent) => {
@@ -30,8 +30,8 @@ export function Dropzone({ onFile, uploading }: { onFile: (file: File) => void; 
       }}
       onDrop={(event) => {
         stopDrag(event)
-        const file = event.dataTransfer.files[0]
-        if (file && !uploading) onFile(file)
+        const files = Array.from(event.dataTransfer.files)
+        if (files.length && !uploading) onFiles(files)
       }}
     >
       <input
@@ -39,9 +39,10 @@ export function Dropzone({ onFile, uploading }: { onFile: (file: File) => void; 
         className="hidden"
         disabled={uploading}
         id={INPUT_ID}
+        multiple
         onChange={(event) => {
-          const file = event.target.files?.[0]
-          if (file) onFile(file)
+          const files = Array.from(event.target.files ?? [])
+          if (files.length) onFiles(files)
           // 같은 파일을 다시 골라도 change가 일어나도록 비운다.
           event.target.value = ''
         }}
@@ -52,7 +53,7 @@ export function Dropzone({ onFile, uploading }: { onFile: (file: File) => void; 
       </div>
       <h2 className="mb-1.5 text-[16px]">{uploading ? '학습지를 올리고 있어요…' : '사진 또는 파일을 놓아주세요'}</h2>
       <p className="mb-3 text-[9px] text-[#8a8fa0]">
-        {uploading ? '잠시만 기다려주세요' : '또는 클릭해서 기기에서 선택하세요'}
+        {uploading ? '잠시만 기다려주세요' : '또는 클릭해서 여러 파일을 한 번에 선택하세요'}
       </p>
       <small className="text-[7px] font-extrabold tracking-[1px] text-[#a0a4b3]">JPG · PNG · PDF</small>
     </label>
