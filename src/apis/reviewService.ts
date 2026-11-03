@@ -61,7 +61,7 @@ export type ReviewService = {
   deleteComment: (worksheetId: number | null, comment: TeacherComment) => Promise<void>
 }
 
-const GENERATION_POLL_MS = 1500
+const GENERATION_POLL_MS = 30_000
 const GENERATION_TIMEOUT_MS = 3 * 60 * 1000
 const SAMPLE_GENERATION_MS = 2700
 
