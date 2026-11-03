@@ -1,6 +1,16 @@
 import type { AnnotationStyle, SelectionBox } from '../types/review'
 
 export type Point = { x: number; y: number }
+export type Size = { width: number; height: number }
+
+/** 원본 비율을 유지하면서 주어진 영역 안에 이미지 전체가 들어가는 크기를 계산한다. */
+export function fitImageSize(image: Size, bounds: Size): Size | null {
+  if (![image.width, image.height, bounds.width, bounds.height].every((value) => Number.isFinite(value) && value > 0)) {
+    return null
+  }
+  const scale = Math.min(bounds.width / image.width, bounds.height / image.height)
+  return { width: image.width * scale, height: image.height * scale }
+}
 
 export function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
