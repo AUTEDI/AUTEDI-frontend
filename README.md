@@ -5,9 +5,10 @@
 
 ## 주요 기능
 
+- **여러 파일 검토**: 업로드한 파일을 원본 목록에서 선택해 이미지와 첨삭 결과를 전환. 처음 선택할 때 첨삭을 생성하고, 업로드 응답에 완료된 결과가 있으면 추가 요청 없이 사용. 이후에는 파일별 수정 내용·코멘트·작성 초안을 이번 접속 동안 유지
 - **첨삭 설정**: 영역(문법·철자 / 어휘·표현 / 문장 구성 / 내용·요약)과 수준(Standard·Advanced)을 영역별로 선택
 - **AI 첨삭 검토**: 원본 이미지 위에 첨삭을 겹쳐 보고, 우측 패널에서 항목별로 유지·수정·삭제
-- **교사 코멘트**: 이미지에서 영역을 드래그해 하이라이트·밑줄과 코멘트를 추가 (AI 첨삭과 구분 표시)
+- **교사 코멘트**: 이미지에서 영역을 드래그해 밑줄·화살표·네모·삽입 표시와 코멘트를 추가 (AI 첨삭과 구분 표시)
 
 ## 기술 스택
 
@@ -42,11 +43,22 @@ VITE_API_BASE_URL=https://autedi-backend-production.up.railway.app
 | 토큰 만료 시 자동 재발급 후 재요청 | `POST /auth/refresh` |
 | 학습지 업로드 | `POST /worksheets` |
 | 첨삭 시작 | `PUT /worksheets/{id}/settings` → `POST .../generations` → `GET .../generations/{genId}` 반복 |
-| 검토 화면 | `GET /worksheets/{id}/review` |
+| 검토 화면의 원본·교사 코멘트 | `GET /worksheets/{id}/review` |
+| AI 첨삭 목록 | `GET /worksheets/{id}/corrections?status=ACTIVE&pageId={pageId}` |
 | 추천 문장 수정 / 삭제 / 삭제 되돌리기 | `PATCH` / `DELETE` / `POST .../restore` (`If-Match` 사용) |
 | 교사 코멘트 저장 / 삭제 | `POST /worksheets/{id}/comments` / `DELETE .../comments/{id}` |
 
-아직 API가 없어 화면에서만 동작하는 기능(새로고침하면 사라짐): 피드백 반영 표시, AI 표시·코멘트 위치 이동과 크기 조절, 교사 표시 중 화살표·네모·삽입 표시, 교사 표시 색, 2페이지 이후 화면.
+아직 API가 없어 화면에서만 동작하는 기능(새로고침하면 사라짐): 피드백 반영 표시, AI 표시·코멘트 위치 이동과 크기 조절, 교사 표시 중 화살표·네모·삽입 표시, 교사 표시 색.
+
+서버 응답의 `isApplied`는 초기 반영 상태에 적용합니다. 이후 반영 버튼으로 바꾼 상태는 아직 서버로 보내지 않습니다.
+
+`worksheetApi.getCorrections(worksheetId, filters, signal)`은 선택적 필터 `status`, `pageId`, `area`, `feedbackType`, `isApplied`를 지원합니다. 화면 조회 시에는 활성 상태와 현재 페이지를 전달하며, 필터가 없으면 해당 쿼리를 생략합니다. `isApplied=false`도 전송하고, 문법 영역 코드는 `GRAMMAR_SPELLING`과 `GRAMMAR_MECHANICS` 모두 지원합니다. 목록 응답의 `result`는 `{ items: [...], total: 숫자 }` 형식을 사용하며, 요청 함수는 목록을 `data`, 전체 건수를 `total`로 반환합니다. 기존 배열과 `{ corrections: [...] }` 형식도 지원합니다.
+
+업로드 응답은 학습지 정보만 있는 형식과 `worksheet`, `generation`, `corrections`, `comments`가 함께 있는 형식을 지원합니다. 첨삭 좌표는 `NORMALIZED_0_1`을 퍼센트로 변환하고, 단일 페이지에서는 영역의 `pageId`가 생략되어도 표시합니다. 다중 페이지에서 페이지를 식별할 수 없는 첨삭은 피드백 목록에만 표시합니다.
+
+각 파일은 첫 페이지만 표시합니다. 한 PDF 파일 안의 여러 페이지를 전환하는 기능은 아직 지원하지 않습니다.
+
+응답 변환, 중복 분석 방지, 파일별 첨삭 상태와 저장 중 파일 전환 방지는 `npm run test:review`로 검증할 수 있습니다. 테스트는 통신을 대체하며 실제 서버에 요청하지 않습니다.
 
 ## 폴더 구조
 

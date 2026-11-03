@@ -9,7 +9,7 @@ export type ApiEnvelope<T> = {
   error: unknown
 }
 
-export type AreaCode = 'GRAMMAR_SPELLING' | 'VOCABULARY_EXPRESSION' | 'SENTENCE_STRUCTURE' | 'CONTENT_SUMMARY'
+export type AreaCode = 'GRAMMAR_SPELLING' | 'GRAMMAR_MECHANICS' | 'VOCABULARY_EXPRESSION' | 'SENTENCE_STRUCTURE' | 'CONTENT_SUMMARY'
 export type LevelCode = 'STANDARD' | 'ADVANCED'
 
 export type AreaSetting = { area: AreaCode; level: LevelCode }
@@ -19,12 +19,13 @@ export type WorksheetStatus = 'DRAFT' | 'PROCESSING' | 'READY' | 'FAILED'
 
 /** 페이지 이미지 기준 0~1 좌표 */
 export type RegionDto = {
-  pageId: number
+  /** 단일 페이지 응답에서는 생략될 수 있다. */
+  pageId?: number | null
   x: number
   y: number
   width: number
   height: number
-  polygon: unknown
+  polygon?: unknown
 }
 
 export type WorksheetPageDto = {
@@ -76,6 +77,16 @@ export type GenerationDto = {
 }
 
 export type CorrectionStatus = 'ACTIVE' | 'DELETED'
+export type CorrectionFeedbackType = 'CORRECTION' | 'SUGGESTION'
+
+/** GET /worksheets/{worksheetId}/corrections의 선택적 쿼리 파라미터 */
+export type CorrectionFilters = {
+  status?: CorrectionStatus
+  pageId?: number
+  area?: AreaCode
+  feedbackType?: CorrectionFeedbackType
+  isApplied?: boolean
+}
 
 export type CorrectionDto = {
   id: number
@@ -93,9 +104,23 @@ export type CorrectionDto = {
   status: CorrectionStatus
   createdAt: string
   updatedAt: string
-  /** AI 공통 응답 계약 v1에서 추가 예정. 오면 오류 수정/개선 제안 구분에 쓴다. */
-  feedbackType?: 'CORRECTION' | 'SUGGESTION' | null
+  /** 없으면 기존 영역 기준으로 오류 수정/개선 제안을 구분한다. */
+  feedbackType?: CorrectionFeedbackType | null
+  isApplied?: boolean | null
+  regionCoordinateUnit?: 'NORMALIZED_0_1' | (string & {}) | null
+  requiresReview?: boolean | null
+  locationUncertain?: boolean | null
+  // null로만 확인된 확장 필드는 계약이 정해질 때 구체화한다.
+  action?: unknown
+  anchor?: unknown
+  issueKinds?: unknown
+  warnings?: unknown
 }
+
+export type CorrectionListDto =
+  | { items: CorrectionDto[]; total: number }
+  | CorrectionDto[]
+  | { corrections: CorrectionDto[] }
 
 export type HighlightType = 'HIGHLIGHT' | 'UNDERLINE'
 
@@ -116,7 +141,13 @@ export type ReviewDto = {
   generation: GenerationDto | null
   corrections: CorrectionDto[]
   comments: CommentDto[]
+  aiResults?: unknown[]
+  reviewIssues?: unknown[]
+  summary?: unknown[]
 }
+
+/** 업로드는 학습지 정보만 반환하거나, 완료된 첨삭 결과까지 함께 반환할 수 있다. */
+export type WorksheetUploadDto = WorksheetDto | ReviewDto
 
 export type SubscriptionStatus = 'ACTIVE' | 'EXPIRED' | 'SUSPENDED'
 

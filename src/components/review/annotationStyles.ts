@@ -2,7 +2,6 @@ import type { AnnotationColor, AnnotationStyle } from '../../types/review'
 import { cn } from '../../utils/cn'
 
 export const ANNOTATION_STYLES: { id: AnnotationStyle; name: string; toolbarLabel: string; icon: string }[] = [
-  { id: 'highlight', name: '하이라이트', toolbarLabel: '하이라이트', icon: '▰' },
   { id: 'underline', name: '밑줄', toolbarLabel: '밑줄', icon: 'U̲' },
   { id: 'arrow', name: '화살표', toolbarLabel: '수평 화살표', icon: '→' },
   { id: 'box', name: '네모', toolbarLabel: '네모 표시', icon: '□' },

@@ -1,0 +1,78 @@
+// 실제 응답의 구조를 재현한다. 이미지 URL은 테스트 전용이며 외부 요청에 사용하지 않는다.
+const timestamp = '2026-11-02T12:59:33.98112'
+const areas = [{ area: 'GRAMMAR_SPELLING', level: 'STANDARD' }]
+
+const correction = (id, area, feedbackType, originalText, content, region) => ({
+  id,
+  etag: `"cor_${id}-v1"`,
+  generationId: 8,
+  source: 'AI',
+  area,
+  feedbackType,
+  originalText,
+  aiInitialContent: content,
+  content,
+  explanation: '문법과 표현에 대한 설명',
+  isApplied: true,
+  regionCoordinateUnit: 'NORMALIZED_0_1',
+  regions: [region],
+  action: null,
+  anchor: null,
+  issueKinds: null,
+  locationUncertain: null,
+  requiresReview: null,
+  warnings: null,
+  editedByTeacher: false,
+  explanationStale: false,
+  status: 'ACTIVE',
+  createdAt: timestamp,
+  updatedAt: timestamp,
+})
+
+export const response = {
+  isSuccess: true,
+  code: 'COMMON_200',
+  message: '성공입니다.',
+  error: null,
+  result: {
+    worksheet: {
+      id: 16,
+      etag: '"ws_16-v3"',
+      status: 'READY',
+      file: {
+        name: 'student-writing.jpeg',
+        mediaType: 'image/jpeg',
+        sizeBytes: 1943769,
+        originalUrl: 'https://assets.example.test/original.jpeg',
+        urlExpiresAt: null,
+      },
+      pages: [{ id: 16, pageNumber: 1, width: 3024, height: 4032, imageUrl: 'https://assets.example.test/page-1.jpeg', urlExpiresAt: null }],
+      settings: { etag: '"settings_16-v3"', areas },
+      latestGenerationId: 8,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    },
+    generation: {
+      id: 8,
+      worksheetId: 16,
+      status: 'SUCCEEDED',
+      stage: 'COMPLETED',
+      attempt: 1,
+      retryOfGenerationId: null,
+      settingsSnapshot: areas,
+      createdAt: timestamp,
+      startedAt: timestamp,
+      finishedAt: timestamp,
+      error: null,
+    },
+    corrections: [
+      correction(7, 'GRAMMAR_SPELLING', 'CORRECTION', 'He go to school yesterday.', 'He went to school yesterday.', { x: 0.2, y: 0.3, width: 0.15, height: 0.04 }),
+      correction(8, 'VOCABULARY_EXPRESSION', 'SUGGESTION', 'I have a very big house.', 'I have a spacious house.', { x: 0.25, y: 0.45, width: 0.2, height: 0.04 }),
+      correction(9, 'SENTENCE_STRUCTURE', 'CORRECTION', 'Because it was raining so we stayed home.', 'Because it was raining, we stayed home.', { x: 0.2, y: 0.6, width: 0.35, height: 0.04 }),
+    ],
+    comments: [],
+    aiResults: [],
+    reviewIssues: [],
+    summary: [],
+  },
+}

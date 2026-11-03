@@ -41,7 +41,6 @@ export function Sidebar() {
       className={cn(
         'fixed inset-y-0 left-0 z-20 flex flex-col px-[18px] pt-[29px] pb-[22px] text-white transition-[width] duration-240',
         'bg-[linear-gradient(160deg,#181b2f_0%,#111423_62%,#18234e_100%)]',
-        "after:pointer-events-none after:absolute after:top-[47%] after:-right-[215px] after:size-[300px] after:rounded-full after:bg-[radial-gradient(circle_at_32%_30%,rgba(104,114,247,0.3),transparent_68%)] after:content-['']",
         collapsed ? 'w-[78px]' : 'w-[248px] sm:max-md:w-[84px]',
         'max-md:items-center sm:max-md:px-[13px] sm:max-md:py-6',
         'max-sm:sticky max-sm:top-0 max-sm:h-[61px] max-sm:w-full max-sm:flex-row max-sm:bg-[linear-gradient(100deg,#171a2d,#1b2450)] max-sm:px-[17px] max-sm:py-[10px]',

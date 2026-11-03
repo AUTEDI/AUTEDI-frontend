@@ -78,5 +78,7 @@ export type ReviewData = {
   pageId: number | null
   imageUrl: string
   feedback: AiFeedback[]
+  /** 서버에서 이미 반영된 첨삭 ID. 이전 응답·예시 모드에서는 생략할 수 있다. */
+  appliedIds?: string[]
   teacherComments: TeacherComment[]
 }

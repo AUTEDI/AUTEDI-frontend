@@ -5,10 +5,11 @@ import type {
   Box,
   FeedbackKind,
   FeedbackSetting,
+  ReviewData,
   SettingId,
   TeacherComment,
 } from '../types/review'
-import type { AreaCode, AreaSetting, CommentDto, CorrectionDto, HighlightType, RegionDto } from './types'
+import type { AreaCode, AreaSetting, CommentDto, CorrectionDto, HighlightType, RegionDto, ReviewDto } from './types'
 
 const AREA_BY_SETTING: Record<SettingId, AreaCode> = {
   grammar: 'GRAMMAR_SPELLING',
@@ -17,9 +18,13 @@ const AREA_BY_SETTING: Record<SettingId, AreaCode> = {
   content: 'CONTENT_SUMMARY',
 }
 
-const SETTING_BY_AREA = Object.fromEntries(
-  Object.entries(AREA_BY_SETTING).map(([setting, area]) => [area, setting]),
-) as Record<AreaCode, SettingId>
+const SETTING_BY_AREA: Record<AreaCode, SettingId> = {
+  GRAMMAR_SPELLING: 'grammar',
+  GRAMMAR_MECHANICS: 'grammar',
+  VOCABULARY_EXPRESSION: 'vocabulary',
+  SENTENCE_STRUCTURE: 'structure',
+  CONTENT_SUMMARY: 'content',
+}
 
 /** 선택한 첨삭 영역만 서버 설정 형식으로 바꾼다. */
 export function toAreaSettings(settings: FeedbackSetting[]): AreaSetting[] {
@@ -54,14 +59,23 @@ function kindOf(correction: CorrectionDto): FeedbackKind {
   return correction.area === 'VOCABULARY_EXPRESSION' || correction.area === 'CONTENT_SUMMARY' ? 'improvement' : 'correction'
 }
 
-/** 현재 페이지의 활성 첨삭만 화면 데이터로 바꾼다. 위치는 첫 번째 영역을 쓴다. */
-export function toAiFeedback(corrections: CorrectionDto[], pageId: number): AiFeedback[] {
+/** 현재 페이지의 활성 첨삭을 변환한다. 페이지 정보가 없는 좌표는 단일 페이지에서만 그린다. */
+export function toAiFeedback(corrections: CorrectionDto[], pageId: number | null, pageCount = 1): AiFeedback[] {
   return corrections
     .filter((correction) => correction.status === 'ACTIVE')
-    .filter((correction) => correction.regions.length === 0 || correction.regions.some((region) => region.pageId === pageId))
+    .filter((correction) =>
+      correction.regions.every((region) => region.pageId == null) ||
+      correction.regions.some((region) => pageId !== null && region.pageId === pageId),
+    )
     .map((correction, index) => {
-      const region = correction.regions.find((item) => item.pageId === pageId)
-      const mark = region ? regionToBox(region) : null
+      const scopedRegion = correction.regions.find((item) => pageId !== null && item.pageId === pageId)
+      const unscopedRegion = pageCount === 1 && correction.regions.every((item) => item.pageId == null)
+        ? correction.regions[0]
+        : undefined
+      const region = scopedRegion ?? unscopedRegion
+      // 단위가 명시되지 않은 기존 응답도 0~1 좌표다. 다른 단위는 위치를 추측하지 않는다.
+      const normalized = correction.regionCoordinateUnit == null || correction.regionCoordinateUnit === 'NORMALIZED_0_1'
+      const mark = region && normalized ? regionToBox(region) : null
       const settingId = SETTING_BY_AREA[correction.area]
       return {
         id: String(correction.id),
@@ -92,16 +106,37 @@ export function toHighlightType(style: AnnotationStyle): HighlightType | null {
 
 export function toTeacherComments(comments: CommentDto[], pageId: number): TeacherComment[] {
   return comments
-    .filter((comment) => comment.pageId === pageId && comment.regions.length > 0)
-    .map((comment) => ({
-      id: `server-${comment.id}`,
-      text: comment.content,
-      style: STYLE_BY_HIGHLIGHT[comment.highlightType] ?? 'highlight',
-      // 색은 아직 서버에 저장하지 않아 기본색으로 보여준다.
-      color: 'blue',
-      box: { ...regionToBox(comment.regions[0]), reverse: false },
-      note: null,
-      serverId: String(comment.id),
-      etag: comment.etag,
-    }))
+    .filter((comment) => comment.pageId === pageId)
+    .flatMap((comment): TeacherComment[] => {
+      // 코멘트 자체의 pageId로 페이지가 확인되므로 영역의 pageId는 없어도 된다.
+      const region = comment.regions.find((item) => item.pageId === pageId)
+        ?? comment.regions.find((item) => item.pageId == null)
+      if (!region) return []
+      return [{
+        id: `server-${comment.id}`,
+        text: comment.content,
+        style: STYLE_BY_HIGHLIGHT[comment.highlightType] ?? 'highlight',
+        // 색은 아직 서버에 저장하지 않아 기본색으로 보여준다.
+        color: 'blue',
+        box: { ...regionToBox(region), reverse: false },
+        note: null,
+        serverId: String(comment.id),
+        etag: comment.etag,
+      }]
+    })
+}
+
+/** 업로드에 포함된 결과와 GET /review 응답에 같은 변환을 적용한다. */
+export function toReviewData(data: ReviewDto): ReviewData {
+  const page = data.worksheet.pages[0]
+  const feedback = toAiFeedback(data.corrections, page?.id ?? null, data.worksheet.pages.length)
+  const applied = new Set(data.corrections.filter((item) => item.isApplied === true).map((item) => String(item.id)))
+  return {
+    worksheetId: data.worksheet.id,
+    pageId: page?.id ?? null,
+    imageUrl: page?.imageUrl ?? data.worksheet.file.originalUrl,
+    feedback,
+    appliedIds: feedback.filter((item) => applied.has(item.id)).map((item) => item.id),
+    teacherComments: page ? toTeacherComments(data.comments, page.id) : [],
+  }
 }

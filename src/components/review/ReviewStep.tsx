@@ -10,7 +10,7 @@ import { PageRail } from './PageRail'
 import { StudioTitlebar } from './StudioTitlebar'
 import { StudioToolbar } from './StudioToolbar'
 
-export function ReviewStep() {
+export function ReviewStep({ onSelectFile }: { onSelectFile: (uploadId: string) => void }) {
   const photoRef = useRef<HTMLDivElement>(null)
   const boardRef = useRef<HTMLDivElement>(null)
   const [canvasRefs] = useState(() => ({ photoRef, boardRef }))
@@ -30,7 +30,7 @@ export function ReviewStep() {
               : 'grid-cols-[88px_minmax(620px,1fr)] max-lg:grid-cols-[70px_minmax(520px,1fr)]',
           )}
         >
-          <PageRail />
+          <PageRail onSelect={onSelectFile} />
           <section className="grid min-w-0 grid-rows-[48px_1fr] max-sm:h-[740px]">
             <StudioToolbar />
             <CanvasBoard />

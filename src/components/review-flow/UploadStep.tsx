@@ -88,7 +88,7 @@ export function UploadStep({ onCustomize, onStart }: UploadStepProps) {
         )}
       </div>
       <AppliedSettingsCard disabled={uploading} onChange={onCustomize} settings={defaults} />
-      {uploads.length > 1 && <p className="col-span-full text-[10px] text-[#8a8fa0]">현재 미리보기 중인 파일을 첨삭합니다.</p>}
+      {uploads.length > 1 && <p className="col-span-full text-[10px] text-[#8a8fa0]">현재 파일부터 첨삭을 시작합니다. 다른 파일은 첨삭 화면의 원본 목록에서 선택할 수 있어요.</p>}
       <FlowActions>
         <Button onClick={() => navigate('home')}>취소</Button>
         <Button disabled={!uploads.length || uploading} onClick={onStart} variant="primary">

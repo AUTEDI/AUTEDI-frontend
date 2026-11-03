@@ -17,15 +17,29 @@ export function ReviewPage() {
   const showToast = useAppStore((state) => state.showToast)
   const markWorksheetReady = useAppStore((state) => state.markWorksheetReady)
   const startReview = useReviewStore((state) => state.startReview)
+  const activeReviewId = useReviewStore((state) => state.activeUploadId)
   // 화면을 벗어나면 진행 중인 생성 확인(폴링)을 멈춘다.
   const generation = useRef<AbortController | null>(null)
 
   useEffect(() => () => generation.current?.abort(), [])
 
-  const runGeneration = async (settings: FeedbackSetting[]) => {
+  const runGeneration = async (settings: FeedbackSetting[], uploadId?: string) => {
     const { uploads, activeUploadId, uploading } = useAppStore.getState()
-    const upload = uploads.find((file) => file.id === activeUploadId)
-    if (!upload || uploading) return
+    const upload = uploads.find((file) => file.id === (uploadId ?? activeUploadId))
+    if (!upload || uploading || useReviewStore.getState().pendingMutations) return
+    // 이미 검토한 파일은 화면에서 수정한 내용까지 복원한다.
+    if (useReviewStore.getState().selectReview(upload.id)) {
+      useAppStore.getState().selectUpload(upload.id)
+      setStep('review')
+      return
+    }
+    // 업로드 때 이미 분석이 끝났다면 생성 화면이나 추가 API 요청 없이 바로 연다.
+    if (upload.worksheet.completedReview) {
+      startReview(upload.id, upload.worksheet.completedReview)
+      useAppStore.getState().selectUpload(upload.id)
+      setStep('review')
+      return
+    }
     if (!settings.some((setting) => setting.selected)) {
       showToast('첨삭 영역을 한 가지 이상 선택해주세요')
       return
@@ -33,6 +47,7 @@ export function ReviewPage() {
     generation.current?.abort()
     const controller = new AbortController()
     generation.current = controller
+    const previousStep = useAppStore.getState().step
     setStep('generation')
     try {
       const review = await reviewService.generateReview({
@@ -42,12 +57,13 @@ export function ReviewPage() {
       })
       if (controller.signal.aborted || useAppStore.getState().step !== 'generation') return
       markWorksheetReady(upload.id)
-      startReview(review)
+      startReview(upload.id, review)
+      useAppStore.getState().selectUpload(upload.id)
       setStep('review')
     } catch (error) {
       if (controller.signal.aborted) return
       showToast(getErrorMessage(error, '첨삭을 생성하지 못했어요. 잠시 후 다시 시도해주세요.'))
-      setStep('upload')
+      setStep(previousStep === 'review' ? 'review' : 'upload')
     }
   }
 
@@ -69,7 +85,12 @@ export function ReviewPage() {
         <SessionSettingsStep onStart={() => void runGeneration(useAppStore.getState().sessionSettings)} />
       )}
       {step === 'generation' && <GenerationStep />}
-      {step === 'review' && <ReviewStep />}
+      {step === 'review' && (
+        <ReviewStep
+          key={activeReviewId}
+          onSelectFile={(uploadId) => void runGeneration(useAppStore.getState().sessionSettings, uploadId)}
+        />
+      )}
     </section>
   )
 }

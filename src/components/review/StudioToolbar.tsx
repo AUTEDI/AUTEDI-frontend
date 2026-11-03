@@ -1,4 +1,3 @@
-import { Fragment } from 'react'
 import { useReviewStore } from '../../stores/useReviewStore'
 import { cn } from '../../utils/cn'
 import { ANNOTATION_STYLES } from './annotationStyles'
@@ -48,25 +47,22 @@ export function StudioToolbar() {
           ＋
         </button>
         {ANNOTATION_STYLES.map((style) => (
-          <Fragment key={style.id}>
-            {/* 강조 표시(하이라이트·밑줄) 앞과 기호 표시(화살표 등) 앞에 구분선을 둔다. */}
-            {(style.id === 'highlight' || style.id === 'arrow') && DIVIDER}
-            <button
-              aria-label={style.toolbarLabel}
-              aria-pressed={annotationStyle === style.id}
-              className={cn(
-                TOOL,
-                'font-extrabold text-[#5061d7]',
-                ['arrow', 'box', 'caret'].includes(style.id) && 'text-[16px] leading-none',
-                annotationStyle === style.id ? 'bg-[#e9ebff] shadow-[inset_0_-2px_#5264dc]' : 'bg-[#f2f3f7]',
-              )}
-              onClick={() => beginAnnotation(style.id)}
-              title={style.name}
-              type="button"
-            >
-              {style.icon}
-            </button>
-          </Fragment>
+          <button
+            key={style.id}
+            aria-label={style.toolbarLabel}
+            aria-pressed={annotationStyle === style.id}
+            className={cn(
+              TOOL,
+              'font-extrabold text-[#5061d7]',
+              ['arrow', 'box', 'caret'].includes(style.id) && 'text-[16px] leading-none',
+              annotationStyle === style.id ? 'bg-[#e9ebff] shadow-[inset_0_-2px_#5264dc]' : 'bg-[#f2f3f7]',
+            )}
+            onClick={() => beginAnnotation(style.id)}
+            title={style.name}
+            type="button"
+          >
+            {style.icon}
+          </button>
         ))}
       </div>
       <div className="flex items-center gap-[5px]">

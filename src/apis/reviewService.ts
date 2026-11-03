@@ -2,7 +2,7 @@ import { SAMPLE_FILE_NAME, SAMPLE_WORKSHEET_URL, createSampleFeedback } from '..
 import type { AiFeedback, FeedbackSetting, ReviewData, TeacherComment } from '../types/review'
 import { USE_LIVE_API } from './config'
 import { ApiError, isApiError } from './errors'
-import { boxToRegion, toAiFeedback, toAreaSettings, toHighlightType, toTeacherComments } from './mappers'
+import { boxToRegion, toAreaSettings, toHighlightType, toReviewData } from './mappers'
 import type { GenerationDto, WorksheetStatus } from './types'
 import { worksheetApi } from './worksheetApi'
 
@@ -13,6 +13,8 @@ export type UploadedWorksheet = {
   imageUrl: string
   status: WorksheetStatus | null
   settingsEtag: string | null
+  /** 업로드 응답에 첨삭 완료 결과가 있으면 추가 요청 없이 사용한다. */
+  completedReview?: ReviewData
 }
 
 type SyncResult = { etag: string | null }
@@ -87,17 +89,15 @@ async function waitForGeneration(worksheetId: number, generation: GenerationDto,
   }
 }
 
-async function loadReview(worksheetId: number): Promise<ReviewData> {
-  const { data } = await worksheetApi.getReview(worksheetId)
-  // 여러 페이지 화면이 생기기 전까지는 첫 페이지만 보여준다.
+async function loadReview(worksheetId: number, signal?: AbortSignal): Promise<ReviewData> {
+  const { data } = await worksheetApi.getReview(worksheetId, signal)
   const page = data.worksheet.pages[0]
-  return {
-    worksheetId,
-    pageId: page?.id ?? null,
-    imageUrl: page?.imageUrl ?? data.worksheet.file.originalUrl,
-    feedback: page ? toAiFeedback(data.corrections, page.id) : [],
-    teacherComments: page ? toTeacherComments(data.comments, page.id) : [],
-  }
+  const { data: corrections } = await worksheetApi.getCorrections(worksheetId, {
+    status: 'ACTIVE',
+    pageId: page?.id,
+  }, signal)
+  // 원본·교사 코멘트는 review에서, AI 첨삭은 전용 목록 API에서 가져온다.
+  return toReviewData({ ...data, corrections })
 }
 
 /** 생성을 시작한다. 이미 진행 중이면 그 작업을 이어서 기다리고, 이미 끝났으면 바로 결과를 연다. */
@@ -118,13 +118,19 @@ async function startAndWait(worksheetId: number, signal?: AbortSignal) {
 
 async function uploadToServer(file: File): Promise<UploadedWorksheet> {
   const { data } = await worksheetApi.upload(file)
-  const page = data.pages[0]
+  const worksheet = 'worksheet' in data ? data.worksheet : data
+  const page = worksheet.pages[0]
+  const completedReview = 'worksheet' in data && worksheet.status === 'READY'
+    && (data.generation === null || data.generation.status === 'SUCCEEDED')
+    ? toReviewData(data)
+    : undefined
   return {
-    worksheetId: data.id,
+    worksheetId: worksheet.id,
     pageId: page?.id ?? null,
-    imageUrl: page?.imageUrl ?? data.file.originalUrl,
-    status: data.status,
-    settingsEtag: data.settings.etag,
+    imageUrl: page?.imageUrl ?? worksheet.file.originalUrl,
+    status: worksheet.status,
+    settingsEtag: worksheet.settings.etag,
+    completedReview,
   }
 }
 
@@ -135,6 +141,8 @@ const liveService: ReviewService = {
     return uploadToServer(new File([blob], SAMPLE_FILE_NAME, { type: blob.type || 'image/jpeg' }))
   },
   generateReview: async ({ worksheet, settings, signal }) => {
+    signal?.throwIfAborted()
+    if (worksheet.completedReview) return worksheet.completedReview
     assertSettings(settings)
     const worksheetId = requireId(worksheet.worksheetId)
     // 첨삭이 끝난(READY) 학습지는 결과만 다시 열고, 생성 중(PROCESSING)이면 설정을 바꿀 수 없으므로 기다리기만 한다.
@@ -144,7 +152,7 @@ const liveService: ReviewService = {
       }
       await startAndWait(worksheetId, signal)
     }
-    return loadReview(worksheetId)
+    return loadReview(worksheetId, signal)
   },
   updateSuggestion: async (worksheetId, item, content) => {
     const { data, etag } = await worksheetApi.updateCorrection(requireId(worksheetId), item.id, content, item.etag)
