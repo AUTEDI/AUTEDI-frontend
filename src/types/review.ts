@@ -22,7 +22,6 @@ export type Box = {
 }
 
 export type FeedbackKind = 'correction' | 'improvement'
-export type AiMarkStyle = 'highlight' | 'underline'
 
 /** AI 코멘트의 기본 위치. side는 사진의 어느 쪽에 붙는지, top은 사진 기준 퍼센트다. */
 export type AiNotePlacement = {
@@ -38,7 +37,6 @@ export type AiFeedback = {
   original: string
   suggestion: string
   reason: string
-  markStyle: AiMarkStyle
   /** 사진 위 위치. 서버가 위치를 찾지 못한 첨삭은 null이며 목록에만 보인다. */
   mark: Box | null
   noteText: string
@@ -49,8 +47,8 @@ export type AiFeedback = {
   etag: string | null
 }
 
-export type AnnotationStyle = 'highlight' | 'underline' | 'arrow' | 'box' | 'caret'
-export type AnnotationColor = 'blue' | 'red'
+export type AnnotationStyle = 'highlight' | 'underline' | 'strike' | 'arrow' | 'box' | 'caret'
+export type AnnotationColor = 'blue' | 'red' | 'yellow' | 'green'
 export type ToolMode = 'idle' | 'annotate'
 export type PanelMode = 'ai' | 'teacher'
 

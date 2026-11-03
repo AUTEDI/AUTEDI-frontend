@@ -1,7 +1,6 @@
 import { useRef } from 'react'
 import { BASE_SETTINGS } from '../../constants/settings'
 import { movedEnough, usePointerDrag } from '../../hooks/usePointerDrag'
-import { useAppStore } from '../../stores/useAppStore'
 import { useReviewStore } from '../../stores/useReviewStore'
 import type { AiFeedback, Box } from '../../types/review'
 import { clamp } from '../../utils/annotation'
@@ -9,14 +8,12 @@ import { cn } from '../../utils/cn'
 import { getRect, useCanvasRefs } from './canvasRefs'
 import { ResizeHandle } from './ResizeHandle'
 
-function markFillClass(item: AiFeedback, active: boolean, applied: boolean) {
-  const correction = item.kind === 'correction'
-  if (item.markStyle === 'underline') {
-    return cn('bg-transparent', correction ? 'border-b-correction' : 'border-b-improvement', active ? 'border-b-3' : 'border-b-2')
-  }
-  if (active) return correction ? 'bg-[rgba(255,62,91,0.25)]' : 'bg-[rgba(52,124,255,0.24)]'
-  if (applied) return 'bg-[rgba(24,174,132,0.18)]'
-  return correction ? 'bg-[rgba(255,62,91,0.16)]' : 'bg-[rgba(52,124,255,0.14)]'
+/** AI 표시는 모두 밑줄로 그린다. 반영한 첨삭은 선택하지 않았을 때 초록 밑줄이 된다. */
+function markLineClass(item: AiFeedback, active: boolean, applied: boolean) {
+  const color = applied && !active
+    ? 'border-b-applied'
+    : item.kind === 'correction' ? 'border-b-correction' : 'border-b-improvement'
+  return cn('bg-transparent', color, active ? 'border-b-3' : 'border-b-2')
 }
 
 type AiMarkProps = {
@@ -32,7 +29,7 @@ export function AiMark({ item, mark, active, applied, dismissed }: AiMarkProps) 
   const { photoRef } = useCanvasRefs()
   const selectFeedback = useReviewStore((state) => state.selectFeedback)
   const moveAiMark = useReviewStore((state) => state.moveAiMark)
-  const showToast = useAppStore((state) => state.showToast)
+  const saveAiMark = useReviewStore((state) => state.saveAiMark)
   // 드래그나 크기 조절 직후의 클릭은 선택으로 보지 않는다.
   const suppressClick = useRef(false)
 
@@ -53,7 +50,7 @@ export function AiMark({ item, mark, active, applied, dismissed }: AiMarkProps) 
     },
     end: (state) => {
       suppressClick.current = state.moved
-      if (state.moved) showToast('AI 표시 위치를 옮겼어요')
+      if (state.moved) void saveAiMark(item.id, 'AI 표시 위치를 옮겼어요')
     },
   })
 
@@ -64,7 +61,7 @@ export function AiMark({ item, mark, active, applied, dismissed }: AiMarkProps) 
       aria-label={`${settingName} ${item.kind === 'correction' ? '오류 수정' : '개선 제안'}`}
       className={cn(
         'absolute z-[6] block touch-none p-0',
-        markFillClass(item, active, applied),
+        markLineClass(item, active, applied),
         dragging && 'cursor-grabbing opacity-82',
         dismissed && 'hidden',
       )}
@@ -87,11 +84,11 @@ export function AiMark({ item, mark, active, applied, dismissed }: AiMarkProps) 
     >
       <ResizeHandle
         box={mark}
-        lockHeight={item.markStyle === 'underline'}
+        lockHeight
         onResize={(box) => moveAiMark(item.id, box)}
         onResizeEnd={() => {
           suppressClick.current = true
-          showToast('AI 표시의 크기와 길이를 조정했어요')
+          void saveAiMark(item.id, 'AI 표시의 크기와 길이를 조정했어요')
         }}
         tone="ai"
         visible={active}

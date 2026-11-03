@@ -3,7 +3,7 @@ import type { AnnotationColor } from '../../types/review'
 import { placeTeacherNote } from '../../utils/annotation'
 import { cn } from '../../utils/cn'
 import { Button } from '../common/Button'
-import { ANNOTATION_STYLES } from './annotationStyles'
+import { ANNOTATION_STYLES, noteInkClass } from './annotationStyles'
 import { COMMENT_INPUT_ID, getRect, useCanvasRefs } from './canvasRefs'
 
 const MAX_COMMENT_LENGTH = 200
@@ -14,6 +14,8 @@ const OPTION_IDLE = 'border-[#dfe2eb] bg-white text-[#5f6579]'
 const COLORS: { id: AnnotationColor; name: string; dot: string; active: string }[] = [
   { id: 'blue', name: '파란색', dot: 'bg-improvement', active: 'border-improvement bg-[#eef5ff] text-improvement-ink' },
   { id: 'red', name: '빨간색', dot: 'bg-correction', active: 'border-correction bg-[#fff0f3] text-[#e82c4c]' },
+  { id: 'yellow', name: '노란색', dot: 'bg-[#f2b500]', active: 'border-[#f2b500] bg-[#fff8dc] text-[#b98700]' },
+  { id: 'green', name: '초록색', dot: 'bg-applied', active: 'border-applied bg-[#e9f8f3] text-[#0d936d]' },
 ]
 
 function SavedTeacherComments() {
@@ -48,7 +50,7 @@ function SavedTeacherComments() {
                 }}
                 type="button"
               >
-                <b className={cn('text-[7px]', comment.color === 'red' && 'text-correction-ink')}>
+                <b className={cn('text-[7px]', comment.color !== 'blue' && noteInkClass(comment.color))}>
                   {String(index + 1).padStart(2, '0')}
                 </b>
                 <span className="truncate text-[7px] leading-[1.35]">{comment.text}</span>

@@ -122,7 +122,9 @@ export type CorrectionListDto =
   | CorrectionDto[]
   | { corrections: CorrectionDto[] }
 
-export type HighlightType = 'HIGHLIGHT' | 'UNDERLINE'
+/** 교사 표시 종류 (Swagger CommentCreateRequest 기준) */
+export type HighlightType = 'HIGHLIGHT' | 'UNDERLINE' | 'STRIKETHROUGH' | 'ARROW' | 'TEXTBOX' | 'CARET'
+export type CommentColor = 'RED' | 'BLUE' | 'YELLOW' | 'GREEN'
 
 export type CommentDto = {
   id: number
@@ -130,6 +132,7 @@ export type CommentDto = {
   source: 'TEACHER' | (string & {})
   pageId: number
   highlightType: HighlightType
+  color?: CommentColor | null
   regions: RegionDto[]
   content: string
   createdAt: string

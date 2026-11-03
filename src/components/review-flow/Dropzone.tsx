@@ -35,7 +35,7 @@ export function Dropzone({ onFiles, uploading }: { onFiles: (files: File[]) => v
       }}
     >
       <input
-        accept="image/jpeg,image/png,application/pdf"
+        accept="image/jpeg,image/png"
         className="hidden"
         disabled={uploading}
         id={INPUT_ID}
@@ -55,7 +55,7 @@ export function Dropzone({ onFiles, uploading }: { onFiles: (files: File[]) => v
       <p className="mb-3 text-[9px] text-[#8a8fa0]">
         {uploading ? '잠시만 기다려주세요' : '또는 클릭해서 여러 파일을 한 번에 선택하세요'}
       </p>
-      <small className="text-[7px] font-extrabold tracking-[1px] text-[#a0a4b3]">JPG · PNG · PDF</small>
+      <small className="text-[7px] font-extrabold tracking-[1px] text-[#a0a4b3]">JPG · PNG</small>
     </label>
   )
 }

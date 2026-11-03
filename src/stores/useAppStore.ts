@@ -44,7 +44,8 @@ type AppState = {
   markWorksheetReady: (id: string) => void
 }
 
-const ACCEPTED_FILE_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
+/** AI 첨삭은 사진(JPG·PNG)만 지원한다. PDF는 서버가 페이지 이미지로 바꾸지 않는다. */
+const ACCEPTED_FILE_TYPES = ['image/jpeg', 'image/png']
 
 function isFeedbackSetting(value: unknown): value is FeedbackSetting {
   if (typeof value !== 'object' || value === null) return false
@@ -149,6 +150,9 @@ export const useAppStore = create<AppState>()((set, get) => {
 
     loadFiles: (files) => upload(files.map((file) => ({
       request: async () => {
+        if (file.type === 'application/pdf') {
+          throw new ApiError({ status: 400, code: 'FILE_002', message: 'PDF는 아직 첨삭할 수 없어요. 학습지를 사진(JPG·PNG)으로 올려주세요.' })
+        }
         if (!ACCEPTED_FILE_TYPES.includes(file.type)) throw new ApiError({ status: 400, code: 'FILE_002' })
         if (file.size === 0) throw new ApiError({ status: 400, code: 'FILE_001' })
         return reviewService.uploadWorksheet(file)

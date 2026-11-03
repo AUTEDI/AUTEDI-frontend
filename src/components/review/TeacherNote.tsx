@@ -3,6 +3,7 @@ import { useAppStore } from '../../stores/useAppStore'
 import { useReviewStore } from '../../stores/useReviewStore'
 import type { TeacherComment } from '../../types/review'
 import { cn } from '../../utils/cn'
+import { noteInkClass } from './annotationStyles'
 import { getRect, useCanvasRefs } from './canvasRefs'
 
 /** 사진 옆 여백에 손글씨로 적힌 교사 코멘트 */
@@ -43,9 +44,7 @@ export function TeacherNote({
         'pointer-events-auto absolute z-[8] block touch-none px-2 py-[3px] font-hand select-none',
         selected
           ? 'text-[#5b35b8] drop-shadow-[0_2px_0_rgba(91,53,184,0.16)]'
-          : comment.color === 'red'
-            ? 'text-correction-ink'
-            : 'text-improvement-ink',
+          : noteInkClass(comment.color),
         dragging && 'cursor-grabbing opacity-88',
       )}
       data-teacher-note={comment.id}

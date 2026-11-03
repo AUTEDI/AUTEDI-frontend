@@ -26,6 +26,8 @@ type RequestOptions = {
   headers?: Record<string, string>
   /** 인증 헤더 없이 보낸다 (로그인·토큰 재발급). */
   anonymous?: boolean
+  /** blob이면 이미지 같은 바이너리 응답을 그대로 돌려준다. */
+  responseType?: 'json' | 'blob'
   signal?: AbortSignal
 }
 
@@ -115,9 +117,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     }
   }
 
-  const body = await readBody(response)
-  if (!response.ok) throw toApiError(response.status, body)
-  return { data: unwrap(body) as T, etag: response.headers.get('ETag'), status: response.status }
+  if (!response.ok) throw toApiError(response.status, await readBody(response))
+  const data = options.responseType === 'blob' ? await response.blob() : unwrap(await readBody(response))
+  return { data: data as T, etag: response.headers.get('ETag'), status: response.status }
 }
 
 type Options = Omit<RequestOptions, 'method' | 'body'>
@@ -131,4 +133,7 @@ export const api = {
   patch: <T>(path: string, body?: unknown, options?: Options) =>
     apiRequest<T>(path, { ...options, method: 'PATCH', body }),
   delete: <T>(path: string, options?: Options) => apiRequest<T>(path, { ...options, method: 'DELETE' }),
+  /** 인증이 필요한 이미지 등 바이너리를 받는다. */
+  blob: (path: string, options?: Omit<Options, 'responseType'>) =>
+    apiRequest<Blob>(path, { ...options, headers: { Accept: '*/*', ...options?.headers }, responseType: 'blob' }),
 }

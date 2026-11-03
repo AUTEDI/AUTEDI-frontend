@@ -1,6 +1,6 @@
 import { api } from './client'
 import { ApiError } from './errors'
-import type { AreaSetting, CommentDto, CorrectionDto, CorrectionFilters, CorrectionListDto, GenerationDto, HighlightType, RegionDto, ReviewDto, WorksheetDto, WorksheetUploadDto } from './types'
+import type { AreaSetting, CommentColor, CommentDto, CorrectionDto, CorrectionFilters, CorrectionListDto, GenerationDto, HighlightType, RegionDto, ReviewDto, WorksheetDto, WorksheetUploadDto } from './types'
 
 const worksheet = (worksheetId: number) => `/worksheets/${worksheetId}`
 
@@ -47,8 +47,24 @@ export const worksheetApi = {
     return { ...response, data: corrections, total }
   },
 
+  /** 회전 보정된 페이지 PNG. 토큰이 필요해 <img src>로 바로 쓸 수 없다. */
+  getPageImage: (worksheetId: number, pageNumber: number, signal?: AbortSignal) =>
+    api.blob(`${worksheet(worksheetId)}/pages/${pageNumber}/image`, { signal }),
+
+  retryGeneration: (worksheetId: number, generationId: number, idempotencyKey: string) =>
+    api.post<GenerationDto>(`${worksheet(worksheetId)}/generations/${generationId}/retry`, undefined, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    }),
+
   updateCorrection: (worksheetId: number, correctionId: string, content: string, ifMatch: string | null) =>
     api.patch<CorrectionDto>(`${worksheet(worksheetId)}/corrections/${correctionId}`, { content }, { ifMatch }),
+  /** 같은 수정 API로 표시 위치·크기만 바꾼다(부분 수정). */
+  updateCorrectionRegions: (worksheetId: number, correctionId: string, regions: RegionDto[], ifMatch: string | null) =>
+    api.patch<CorrectionDto>(`${worksheet(worksheetId)}/corrections/${correctionId}`, { regions }, { ifMatch }),
+  applyCorrection: (worksheetId: number, correctionId: string, applied: boolean, ifMatch: string | null) =>
+    api.patch<CorrectionDto>(`${worksheet(worksheetId)}/corrections/${correctionId}/apply?applied=${applied}`, undefined, {
+      ifMatch,
+    }),
   deleteCorrection: (worksheetId: number, correctionId: string, ifMatch: string | null) =>
     api.delete<null>(`${worksheet(worksheetId)}/corrections/${correctionId}`, { ifMatch }),
   restoreCorrection: (worksheetId: number, correctionId: string, ifMatch: string | null) =>
@@ -56,7 +72,7 @@ export const worksheetApi = {
 
   createComment: (
     worksheetId: number,
-    body: { pageId: number; regions: RegionDto[]; highlightType: HighlightType; content: string },
+    body: { pageId: number; regions: RegionDto[]; highlightType: HighlightType; color: CommentColor; content: string },
   ) => api.post<CommentDto>(`${worksheet(worksheetId)}/comments`, body),
   deleteComment: (worksheetId: number, commentId: string, ifMatch: string | null) =>
     api.delete<null>(`${worksheet(worksheetId)}/comments/${commentId}`, { ifMatch }),

@@ -1,6 +1,7 @@
 import { BASE_SETTINGS } from '../constants/settings'
 import type {
   AiFeedback,
+  AnnotationColor,
   AnnotationStyle,
   Box,
   FeedbackKind,
@@ -9,7 +10,16 @@ import type {
   SettingId,
   TeacherComment,
 } from '../types/review'
-import type { AreaCode, AreaSetting, CommentDto, CorrectionDto, HighlightType, RegionDto, ReviewDto } from './types'
+import type {
+  AreaCode,
+  AreaSetting,
+  CommentColor,
+  CommentDto,
+  CorrectionDto,
+  HighlightType,
+  RegionDto,
+  ReviewDto,
+} from './types'
 
 const AREA_BY_SETTING: Record<SettingId, AreaCode> = {
   grammar: 'GRAMMAR_SPELLING',
@@ -38,9 +48,10 @@ export function regionToBox(region: RegionDto): Box {
   return { left: region.x * 100, top: region.y * 100, width: region.width * 100, height: region.height * 100 }
 }
 
-export function boxToRegion(box: Box, pageId: number): RegionDto {
+/** pageId를 모르는 단일 페이지 응답이면 pageId 없이 보낸다. */
+export function boxToRegion(box: Box, pageId: number | null): RegionDto {
   return {
-    pageId,
+    ...(pageId !== null ? { pageId } : {}),
     x: box.left / 100,
     y: box.top / 100,
     width: box.width / 100,
@@ -84,7 +95,6 @@ export function toAiFeedback(corrections: CorrectionDto[], pageId: number | null
         original: correction.originalText,
         suggestion: correction.content,
         reason: correction.explanation,
-        markStyle: 'highlight',
         mark,
         noteText: correction.content,
         // 코멘트가 겹치지 않도록 사진 오른쪽과 왼쪽에 번갈아 둔다.
@@ -95,13 +105,37 @@ export function toAiFeedback(corrections: CorrectionDto[], pageId: number | null
     })
 }
 
-const STYLE_BY_HIGHLIGHT: Record<HighlightType, AnnotationStyle> = { HIGHLIGHT: 'highlight', UNDERLINE: 'underline' }
+const HIGHLIGHT_BY_STYLE: Record<AnnotationStyle, HighlightType> = {
+  highlight: 'HIGHLIGHT',
+  underline: 'UNDERLINE',
+  strike: 'STRIKETHROUGH',
+  arrow: 'ARROW',
+  box: 'TEXTBOX',
+  caret: 'CARET',
+}
 
-/** 서버가 저장할 수 있는 교사 표시 종류. 나머지는 화면에서만 쓴다. */
-export function toHighlightType(style: AnnotationStyle): HighlightType | null {
-  if (style === 'highlight') return 'HIGHLIGHT'
-  if (style === 'underline') return 'UNDERLINE'
-  return null
+const STYLE_BY_HIGHLIGHT = Object.fromEntries(
+  Object.entries(HIGHLIGHT_BY_STYLE).map(([style, highlight]) => [highlight, style]),
+) as Record<HighlightType, AnnotationStyle>
+
+/** 화면의 교사 표시 종류를 서버 값으로 바꾼다. */
+export function toHighlightType(style: AnnotationStyle): HighlightType {
+  return HIGHLIGHT_BY_STYLE[style]
+}
+
+const COMMENT_COLOR_BY_COLOR: Record<AnnotationColor, CommentColor> = {
+  blue: 'BLUE',
+  red: 'RED',
+  yellow: 'YELLOW',
+  green: 'GREEN',
+}
+
+export function toCommentColor(color: AnnotationColor): CommentColor {
+  return COMMENT_COLOR_BY_COLOR[color]
+}
+
+function fromCommentColor(color: CommentColor | null | undefined): AnnotationColor {
+  return (Object.entries(COMMENT_COLOR_BY_COLOR).find(([, value]) => value === color)?.[0] as AnnotationColor) ?? 'blue'
 }
 
 export function toTeacherComments(comments: CommentDto[], pageId: number): TeacherComment[] {
@@ -115,9 +149,8 @@ export function toTeacherComments(comments: CommentDto[], pageId: number): Teach
       return [{
         id: `server-${comment.id}`,
         text: comment.content,
-        style: STYLE_BY_HIGHLIGHT[comment.highlightType] ?? 'highlight',
-        // 색은 아직 서버에 저장하지 않아 기본색으로 보여준다.
-        color: 'blue',
+        style: STYLE_BY_HIGHLIGHT[comment.highlightType] ?? 'underline',
+        color: fromCommentColor(comment.color),
         box: { ...regionToBox(region), reverse: false },
         note: null,
         serverId: String(comment.id),

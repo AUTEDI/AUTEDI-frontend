@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { USE_LIVE_API } from '../apis/config'
 import { getErrorMessage } from '../apis/errors'
 import { reviewService } from '../apis/reviewService'
 import { SAMPLE_WORKSHEET_URL, createSampleFeedback } from '../constants/sampleReview'
@@ -56,13 +55,14 @@ type ReviewState = {
   showAiList: () => void
   showManualEditor: () => void
   closePanel: () => void
-  /** 반영 여부는 아직 저장할 API가 없어 화면에서만 표시한다. */
-  toggleApplied: () => void
+  toggleApplied: () => Promise<void>
   dismissActiveFeedback: () => Promise<void>
   restoreFeedback: (id: string) => Promise<void>
   /** 저장에 성공하면 true를 돌려준다. */
   saveSuggestion: (id: string, suggestion: string) => Promise<boolean>
   moveAiMark: (id: string, mark: Box) => void
+  /** 옮기거나 크기를 바꾼 AI 표시 위치를 저장한다. */
+  saveAiMark: (id: string, message: string) => Promise<void>
   moveAiNote: (id: string, position: { left: number; top: number }) => void
 
   setToolMode: (mode: ToolMode) => void
@@ -105,7 +105,7 @@ function snapshotReview(state: ReviewState): ReviewDocumentState {
   return Object.fromEntries(DOCUMENT_KEYS.map((key) => [key, state[key]])) as ReviewDocumentState
 }
 
-/** 서버에 저장하지 않는 교사 표시의 화면용 ID */
+/** 예시 모드에서 저장한 교사 표시의 화면용 ID */
 let localCommentSeq = 0
 
 export const useReviewStore = create<ReviewState>()((set, get) => {
@@ -123,6 +123,18 @@ export const useReviewStore = create<ReviewState>()((set, get) => {
     set((state) => ({ feedback: state.feedback.map((item) => (item.id === id ? { ...item, ...patch } : item)) }))
 
   const findFeedback = (id: string) => get().feedback.find((item) => item.id === id)
+
+  // 같은 첨삭의 수정은 앞 요청이 돌려준 ETag가 필요하므로 차례대로 보낸다.
+  const feedbackQueues = new Map<string, Promise<unknown>>()
+  const queueFeedback = <T,>(id: string, action: () => Promise<T>): Promise<T> => {
+    const result = (feedbackQueues.get(id) ?? Promise.resolve()).then(action)
+    const settled = result.catch(() => {})
+    feedbackQueues.set(id, settled)
+    void settled.then(() => {
+      if (feedbackQueues.get(id) === settled) feedbackQueues.delete(id)
+    })
+    return mutate(() => result)
+  }
 
   return {
     activeUploadId: null,
@@ -207,12 +219,23 @@ export const useReviewStore = create<ReviewState>()((set, get) => {
     closePanel: () => set({ panelOpen: false }),
 
     toggleApplied: () => {
-      const { activeFeedbackId, appliedIds } = get()
-      const applied = !appliedIds.includes(activeFeedbackId)
-      set({
-        appliedIds: applied ? [...appliedIds, activeFeedbackId] : appliedIds.filter((id) => id !== activeFeedbackId),
+      const id = get().activeFeedbackId
+      return queueFeedback(id, async () => {
+        const item = findFeedback(id)
+        if (!item) return
+        const applied = !get().appliedIds.includes(id)
+        try {
+          const { etag } = await reviewService.setApplied(get().worksheetId, item, applied)
+          patchFeedback(id, { etag })
+        } catch (error) {
+          toast(getErrorMessage(error, '반영 여부를 저장하지 못했어요. 다시 시도해주세요.'))
+          return
+        }
+        set((state) => ({
+          appliedIds: applied ? [...state.appliedIds, id] : state.appliedIds.filter((appliedId) => appliedId !== id),
+        }))
+        toast(applied ? '이 첨삭을 반영했어요' : '첨삭 반영을 취소했어요')
       })
-      toast(applied ? '이 첨삭을 반영했어요' : '첨삭 반영을 취소했어요')
     },
     dismissActiveFeedback: () => mutate(async () => {
       const uploadId = get().activeUploadId
@@ -263,6 +286,17 @@ export const useReviewStore = create<ReviewState>()((set, get) => {
       }
     }),
     moveAiMark: (id, mark) => patchFeedback(id, { mark }),
+    saveAiMark: (id, message) => queueFeedback(id, async () => {
+      const item = findFeedback(id)
+      if (!item?.mark) return
+      try {
+        const { etag } = await reviewService.saveMarkRegion(get().worksheetId, get().pageId, item, item.mark)
+        patchFeedback(id, { etag })
+        toast(message)
+      } catch (error) {
+        toast(getErrorMessage(error, 'AI 표시 위치를 저장하지 못했어요. 다시 시도해주세요.'))
+      }
+    }),
     moveAiNote: (id, notePosition) => patchFeedback(id, { notePosition }),
 
     setToolMode: (toolMode) => set({ toolMode, guideHidden: false }),
@@ -294,6 +328,7 @@ export const useReviewStore = create<ReviewState>()((set, get) => {
         const { serverId, etag } = await reviewService.createComment(get().worksheetId, get().pageId, {
           text,
           style: annotationStyle,
+          color: annotationColor,
           box: draft,
         })
         const comment: TeacherComment = {
@@ -308,11 +343,7 @@ export const useReviewStore = create<ReviewState>()((set, get) => {
         }
         set((state) => ({ teacherComments: [...state.teacherComments, comment] }))
         get().startNewTeacherComment()
-        toast(
-          USE_LIVE_API && !serverId
-            ? '코멘트를 추가했어요. 화살표·네모·삽입 표시는 아직 서버에 저장되지 않아요'
-            : '교사 코멘트를 저장했어요. 다음 문장을 바로 선택할 수 있어요',
-        )
+        toast('교사 코멘트를 저장했어요. 다음 문장을 바로 선택할 수 있어요')
       } catch (error) {
         toast(getErrorMessage(error, '교사 코멘트를 저장하지 못했어요. 다시 시도해주세요.'))
       } finally {

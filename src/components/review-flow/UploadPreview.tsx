@@ -33,7 +33,7 @@ export function UploadPreview({ uploads, activeUploadId, uploading, onSelect, on
         <input
           ref={inputRef}
           aria-label="미리보기에 파일 추가"
-          accept="image/jpeg,image/png,application/pdf"
+          accept="image/jpeg,image/png"
           className="hidden"
           disabled={uploading}
           multiple
