@@ -50,6 +50,16 @@ export function CanvasBoard() {
     ? fitImageSize(loadedImage.size, { width: boardSize.width * 0.68, height: boardSize.height * 0.94 })
     : null
   const imageReady = fittedSize !== null
+  const noteLayout = fittedSize && boardSize ? {
+    board: { x: 0, y: 0, ...boardSize },
+    photo: {
+      x: (boardSize.width - fittedSize.width * zoom) / 2,
+      y: (boardSize.height - fittedSize.height * zoom) / 2,
+      width: fittedSize.width * zoom,
+      height: fittedSize.height * zoom,
+    },
+    zoom,
+  } : null
 
   useLayoutEffect(() => {
     const board = boardRef.current
@@ -164,8 +174,8 @@ export function CanvasBoard() {
               />
             ),
         )}
-        {feedback.map(
-          (item) => item.mark && <AiNote dismissed={dismissedIds.includes(item.id)} item={item} key={item.id} />,
+        {noteLayout && feedback.map(
+          (item) => item.mark && <AiNote dismissed={dismissedIds.includes(item.id)} item={item} key={item.id} layout={noteLayout} />,
         )}
         {teacherComments.map((comment) => (
           <TeacherMark comment={comment} key={comment.id} selected={comment.id === selectedTeacherId} />

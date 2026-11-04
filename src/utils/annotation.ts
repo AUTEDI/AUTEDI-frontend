@@ -2,6 +2,42 @@ import type { AnnotationStyle, SelectionBox } from '../types/review'
 
 export type Point = { x: number; y: number }
 export type Size = { width: number; height: number }
+export type Rect = Point & Size
+
+const AI_NOTE_OUTSIDE_LIMIT = 200
+const AI_NOTE_IMAGE_GAP = 16
+const AI_NOTE_CANVAS_PADDING = 8
+
+/** 문장 전체를 캔버스 안에 두고, 이미지 양옆으로 나가는 거리는 최대 200px로 제한한다. */
+export function clampAiNotePosition(position: Point, photo: Rect, board: Rect, note: Size): Point {
+  const minX = Math.max(board.x + AI_NOTE_CANVAS_PADDING, photo.x - AI_NOTE_OUTSIDE_LIMIT)
+  const maxX = Math.min(
+    board.x + board.width - AI_NOTE_CANVAS_PADDING - note.width,
+    photo.x + photo.width + AI_NOTE_OUTSIDE_LIMIT - note.width,
+  )
+  const minY = board.y + AI_NOTE_CANVAS_PADDING
+  const maxY = board.y + board.height - AI_NOTE_CANVAS_PADDING - note.height
+  return {
+    x: clamp(position.x, minX, Math.max(minX, maxX)),
+    y: clamp(position.y, minY, Math.max(minY, maxY)),
+  }
+}
+
+/** 첫 문장은 이미지에서 16px 떨어뜨리고, 여백이 모자라면 반대편을 먼저 확인한다. */
+export function placeAiNote(photo: Rect, board: Rect, note: Size, side: 'left' | 'right', top: number): Point {
+  const left = photo.x - AI_NOTE_IMAGE_GAP - note.width
+  const right = photo.x + photo.width + AI_NOTE_IMAGE_GAP
+  const fits = (x: number) => x >= board.x + AI_NOTE_CANVAS_PADDING
+    && x >= photo.x - AI_NOTE_OUTSIDE_LIMIT
+    && x + note.width <= board.x + board.width - AI_NOTE_CANVAS_PADDING
+    && x + note.width <= photo.x + photo.width + AI_NOTE_OUTSIDE_LIMIT
+  const preferred = side === 'left' ? left : right
+  const opposite = side === 'left' ? right : left
+  return clampAiNotePosition({
+    x: fits(preferred) ? preferred : fits(opposite) ? opposite : preferred,
+    y: photo.y + (top / 100) * photo.height,
+  }, photo, board, note)
+}
 
 /** 원본 비율을 유지하면서 주어진 영역 안에 이미지 전체가 들어가는 크기를 계산한다. */
 export function fitImageSize(image: Size, bounds: Size): Size | null {

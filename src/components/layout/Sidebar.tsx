@@ -141,13 +141,13 @@ export function Sidebar() {
             <small className="truncate text-[7px] text-[#747d9a]">{user?.academyName}</small>
           </div>
           <button
-            aria-label={USE_LIVE_API ? '로그아웃' : '사용자 메뉴'}
-            className={cn('ml-auto shrink-0 text-[#858da6]', hideLabel)}
+            aria-label="로그아웃"
+            className={cn('ml-auto shrink-0 text-[10px] whitespace-nowrap text-[#858da6]', hideLabel)}
             onClick={() => (USE_LIVE_API ? void logout() : showToast('사용자 메뉴는 준비 중이에요'))}
-            title={USE_LIVE_API ? '로그아웃' : undefined}
+            title="로그아웃"
             type="button"
           >
-            •••
+            로그아웃
           </button>
         </div>
       </div>
