@@ -1,9 +1,9 @@
 ---
-name: 이슈
+name: 작업 이슈
 about: 작업 또는 문제를 등록합니다.
-title: ''
-labels: ''
-assignees: ''
+title: ""
+labels: ""
+assignees: ""
 ---
 
 ## 📄 설명
