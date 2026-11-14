@@ -1,0 +1,35 @@
+/* UI roles reference the primitive palette. */
+:root {
+  --background-neutral-default: var(--color-gray-white);
+  --background-neutral-weak: var(--color-gray-100);
+  --background-neutral-subtle: var(--color-gray-200);
+  --background-neutral-disabled: var(--color-gray-100);
+  --background-brand-weak: var(--color-blue-50);
+  --background-brand-subtle: var(--color-blue-300);
+  --background-brand-strong: var(--color-blue-500);
+  --background-accent-error: var(--color-red-100);
+  --background-accent-green-weak: var(--color-green-50);
+  --background-accent-red-weak: var(--color-red-50);
+  --foreground-neutral-default: var(--color-gray-800);
+  --foreground-neutral-weak: var(--color-gray-200);
+  --foreground-neutral-subtle: var(--color-gray-400);
+  --foreground-neutral-muted: var(--color-gray-500);
+  --foreground-neutral-inverse: var(--color-gray-white);
+  --foreground-brand-subtle: var(--color-blue-300);
+  --foreground-brand-strong: var(--color-blue-500);
+  --foreground-accent-new: var(--color-red-500);
+  --foreground-accent-error: var(--color-red-500);
+  --foreground-accent-feedback-red: var(--color-red-500);
+  --foreground-accent-feedback-brand: var(--color-blue-500);
+  --foreground-accent-green: var(--color-green-500);
+  --action-primary: var(--color-blue-500);
+  --action-hover: var(--color-blue-600);
+  --action-pressed: var(--color-blue-700);
+  --action-disabled: var(--color-gray-300);
+  --border-default: var(--color-gray-300);
+  --border-weak: var(--color-gray-200);
+  --border-strong: var(--color-gray-800);
+  --border-focused: var(--color-blue-400);
+  --border-error: var(--color-red-500);
+  --border-disabled: var(--color-gray-400);
+}
