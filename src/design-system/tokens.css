@@ -1,0 +1,8 @@
+@import './color.css';
+@import './typography.css';
+@import './spacing.css';
+@import './radius.css';
+
+:root {
+  --shadow-card: 0 0 4px rgb(0 0 0 / 10%);
+}
