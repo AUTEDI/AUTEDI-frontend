@@ -51,13 +51,13 @@ export default function Sidebar({
         className,
       ].join(' ')}
     >
-      <div className={`flex h-[76px] shrink-0 items-center transition-[padding] duration-300 ease-in-out motion-reduce:transition-none ${isCollapsed ? 'px-[22px]' : 'px-ds-32'}`}>
+      <div className={`flex h-ds-60 shrink-0 items-center transition-[padding] duration-300 ease-in-out motion-reduce:transition-none ${isCollapsed ? 'px-[22px]' : 'px-ds-24'}`}>
         <Link to={logoTo} aria-label="AUTEDI 홈으로 이동" title={isCollapsed ? 'AUTEDI' : undefined} className={`inline-flex min-w-0 items-center transition-[gap] duration-300 ease-in-out motion-reduce:transition-none ${isCollapsed ? 'gap-0' : 'gap-ds-4'} ${focusClasses}`}>
           <img src={logo} alt="" width="28" height="28" className="shrink-0" />
           <span aria-hidden="true" className={`font-brand text-[22px] leading-[1.5] font-extrabold text-text-brand-strong ${labelTransitionClasses} ${isCollapsed ? 'max-w-0 -translate-x-1 opacity-0' : 'max-w-[104px] translate-x-0 opacity-100'}`}>AUTEDI</span>
         </Link>
       </div>
-      <div className={`flex min-h-0 flex-1 flex-col pb-ds-16 transition-[padding] duration-300 ease-in-out motion-reduce:transition-none ${isCollapsed ? 'px-ds-24' : 'px-ds-32'}`}>
+      <div className="flex min-h-0 flex-1 flex-col px-ds-24 py-ds-16">
         <button
           type="button"
           aria-label={toggleLabel}
@@ -69,9 +69,8 @@ export default function Sidebar({
         >
           <img src={toggleIcon} alt="" width="19.6" height="15.1" className="max-w-none" />
         </button>
-        <div aria-hidden="true" className="mt-ds-24 h-px w-full shrink-0 bg-ds-blue-200" />
-        <nav id={navigationId} aria-label="주 메뉴" className="mt-ds-16 min-h-0 w-[calc(100%+var(--spacing-16))] flex-1 self-center overflow-y-auto p-ds-8">
-          <ul className="flex flex-col gap-ds-24">
+        <nav id={navigationId} aria-label="주 메뉴" className="mt-ds-24 min-h-0 w-[calc(100%+var(--spacing-16))] flex-1 self-center overflow-y-auto p-ds-8">
+          <ul className="flex flex-col gap-ds-32">
             {items.map(({ id, label, ...item }) => (
               <li key={id} className="shrink-0">
                 <SidebarItem {...item} collapsed={isCollapsed}>{label}</SidebarItem>
