@@ -1,5 +1,7 @@
+import Sidebar from './components/sidebar/Sidebar'
+
 function App() {
-  return <h1>AUTEDI</h1>
+  return <Sidebar />
 }
 
 export default App

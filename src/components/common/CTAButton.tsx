@@ -1,3 +1,4 @@
+// 링크용 버튼입니다.
 import { Link, type LinkProps } from 'react-router'
 import { buttonBaseClasses, buttonBorderClasses, buttonStateClasses, type ButtonState } from './ButtonStyles'
 

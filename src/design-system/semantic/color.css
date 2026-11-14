@@ -10,26 +10,36 @@
   --background-accent-error: var(--color-red-100);
   --background-accent-green-weak: var(--color-green-50);
   --background-accent-red-weak: var(--color-red-50);
-  --foreground-neutral-default: var(--color-gray-800);
-  --foreground-neutral-weak: var(--color-gray-200);
-  --foreground-neutral-subtle: var(--color-gray-400);
-  --foreground-neutral-muted: var(--color-gray-500);
-  --foreground-neutral-inverse: var(--color-gray-white);
-  --foreground-brand-subtle: var(--color-blue-300);
-  --foreground-brand-strong: var(--color-blue-500);
-  --foreground-accent-new: var(--color-red-500);
-  --foreground-accent-error: var(--color-red-500);
-  --foreground-accent-feedback-red: var(--color-red-500);
-  --foreground-accent-feedback-brand: var(--color-blue-500);
-  --foreground-accent-green: var(--color-green-500);
+
   --action-primary: var(--color-blue-500);
   --action-hover: var(--color-blue-600);
   --action-pressed: var(--color-blue-700);
   --action-disabled: var(--color-gray-300);
+
   --border-default: var(--color-gray-300);
   --border-weak: var(--color-gray-200);
   --border-strong: var(--color-gray-800);
   --border-focused: var(--color-blue-400);
   --border-error: var(--color-red-500);
   --border-disabled: var(--color-gray-400);
+
+  --text-neutral-default: var(--color-gray-800);
+  --text-neutral-weak: var(--color-gray-200);
+  --text-neutral-subtle: var(--color-gray-400);
+  --text-neutral-muted: var(--color-gray-500);
+  --text-neutral-inverse: var(--color-gray-white);
+  --text-brand-subtle: var(--color-blue-300);
+  --text-brand-strong: var(--color-blue-500);
+  --text-accent-red: var(--color-red-500);
+  --text-accent-green: var(--color-red-500);
+
+  --icon-neutral-default: var(--color-gray-800);
+  --icon-neutral-weak: var(--color-gray-200);
+  --icon-neutral-subtle: var(--color-gray-400);
+  --icon-neutral-muted: var(--color-gray-500);
+  --icon-neutral-inverse: var(--color-gray-white);
+  --icon-brand-subtle: var(--color-blue-300);
+  --icon-brand-strong: var(--color-blue-500);
+  --icon-accent-red: var(--color-red-500);
+  --icon-accent-green: var(--color-green-500);
 }

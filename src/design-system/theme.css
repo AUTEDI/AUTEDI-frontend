@@ -1,8 +1,14 @@
 /* Tailwind v4 aliases. Actual values live in primitive/ and semantic/. */
 @theme inline {
   --font-sans: var(--font-family);
+  --font-brand: 'Red Hat Display', var(--font-family);
 
   /* Semantic color roles. */
+  --color-text-neutral-subtle: var(--text-neutral-subtle);
+  --color-text-brand-subtle: var(--text-brand-subtle);
+  --color-text-brand-strong: var(--text-brand-strong);
+  --color-icon-brand-subtle: var(--icon-brand-subtle);
+  --color-icon-brand-strong: var(--icon-brand-strong);
   --color-background-neutral-default: var(--background-neutral-default);
   --color-background-neutral-weak: var(--background-neutral-weak);
   --color-background-neutral-subtle: var(--background-neutral-subtle);
@@ -87,6 +93,8 @@
   --color-ds-red-950: var(--color-red-950);
 
   /* Pixel-based design spacing: p-ds-16 = 16px; p-4 keeps Tailwind's scale. */
+  --spacing-ds-sidebar-folded: var(--layout-sidebar-folded);
+  --spacing-ds-sidebar-expanded: var(--layout-sidebar-expanded);
   --spacing-ds-4: var(--spacing-4);
   --spacing-ds-8: var(--spacing-8);
   --spacing-ds-10: var(--spacing-10);
