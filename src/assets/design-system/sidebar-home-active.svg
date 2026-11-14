@@ -1,0 +1,9 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="icon / Home">
+<path id="Vector" d="M6 8.5C6 8.18524 6.14819 7.88885 6.4 7.7L13.4 2.45C13.7556 2.18333 14.2444 2.18333 14.6 2.45L21.6 7.7C21.8518 7.88885 22 8.18524 22 8.5V19C22 19.5523 21.5523 20 21 20H7C6.44772 20 6 19.5523 6 19V8.5Z" fill="#CDD2F7"/>
+<foreignObject x="0.6" y="2.82451" width="19.8" height="20.5755"><div xmlns="http://www.w3.org/1999/xhtml" style="backdrop-filter:blur(0.7px);clip-path:url(#bgblur_0_0_13_clip_path);height:100%;width:100%"></div></foreignObject><path id="Vector_2" data-figma-bg-blur-radius="1.4" d="M2 10.5C2 10.1852 2.14819 9.88885 2.4 9.7L9.43399 4.42451C9.77317 4.17012 10.2359 4.15728 10.5887 4.39246L18.5547 9.70313C18.8329 9.8886 19 10.2008 19 10.5352V21C19 21.5523 18.5523 22 18 22H14C13.4477 22 13 21.5523 13 21V17C13 16.4477 12.5523 16 12 16H10C9.44772 16 9 16.4477 9 17V21C9 21.5523 8.55228 22 8 22H3C2.44772 22 2 21.5523 2 21V10.5Z" fill="#4C5AE0"/>
+</g>
+<defs>
+<clipPath id="bgblur_0_0_13_clip_path" transform="translate(-0.6 -2.82451)"><path d="M2 10.5C2 10.1852 2.14819 9.88885 2.4 9.7L9.43399 4.42451C9.77317 4.17012 10.2359 4.15728 10.5887 4.39246L18.5547 9.70313C18.8329 9.8886 19 10.2008 19 10.5352V21C19 21.5523 18.5523 22 18 22H14C13.4477 22 13 21.5523 13 21V17C13 16.4477 12.5523 16 12 16H10C9.44772 16 9 16.4477 9 17V21C9 21.5523 8.55228 22 8 22H3C2.44772 22 2 21.5523 2 21V10.5Z"/>
+</clipPath></defs>
+</svg>

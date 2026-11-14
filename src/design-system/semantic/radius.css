@@ -1,6 +1,6 @@
 :root {
-  --radius-small: var(--radius-4);
-  --radius-medium: var(--radius-8);
+  --radius-small: var(--radius-8);
+  --radius-medium: var(--radius-12);
   --radius-large: var(--radius-16);
   --radius-full: var(--radius-999);
 }
