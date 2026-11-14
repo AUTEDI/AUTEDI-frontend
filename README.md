@@ -15,7 +15,7 @@ React 19 · TypeScript · Vite · ESLint · Vercel
 
 ## 협업 규칙
 
-**작업 순서**: 이슈 생성 → 브랜치 생성 → 커밋 → PR → `main` 병합 (`main`에 직접 push 금지)
+**작업 순서**: 이슈 생성 → 브랜치 생성 → 커밋 → PR → `develop` 병합 (`main`에 직접 push 금지)
 PR 전에 `npm run lint`, `npm run build`가 통과해야 합니다.
 
 **브랜치**: `<type>/<issue-number>-<short-description>` 예) `feature/114-add-typescript`
