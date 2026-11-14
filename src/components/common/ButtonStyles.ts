@@ -5,10 +5,10 @@ export const buttonBaseClasses =
 
 export const buttonStateClasses = {
   primary:
-    'bg-action-primary text-foreground-neutral-inverse hover:bg-action-hover active:bg-action-pressed',
-  hover: 'bg-action-hover text-foreground-neutral-inverse active:bg-action-pressed',
-  pressed: 'bg-action-pressed text-foreground-neutral-inverse',
-  disabled: 'bg-action-disabled text-foreground-neutral-subtle',
+    'bg-action-primary text-text-neutral-inverse hover:bg-action-hover active:bg-action-pressed',
+  hover: 'bg-action-hover text-text-neutral-inverse active:bg-action-pressed',
+  pressed: 'bg-action-pressed text-text-neutral-inverse',
+  disabled: 'bg-action-disabled text-text-neutral-subtle',
 } as const satisfies Record<ButtonState, string>
 
 export const buttonBorderClasses = {

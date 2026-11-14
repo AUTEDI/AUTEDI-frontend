@@ -3,12 +3,7 @@
   --font-sans: var(--font-family);
   --font-brand: 'Red Hat Display', var(--font-family);
 
-  /* Semantic color roles. */
-  --color-text-neutral-subtle: var(--text-neutral-subtle);
-  --color-text-brand-subtle: var(--text-brand-subtle);
-  --color-text-brand-strong: var(--text-brand-strong);
-  --color-icon-brand-subtle: var(--icon-brand-subtle);
-  --color-icon-brand-strong: var(--icon-brand-strong);
+  /* Semantic color roles reference semantic/color.css. */
   --color-background-neutral-default: var(--background-neutral-default);
   --color-background-neutral-weak: var(--background-neutral-weak);
   --color-background-neutral-subtle: var(--background-neutral-subtle);
@@ -19,22 +14,32 @@
   --color-background-accent-error: var(--background-accent-error);
   --color-background-accent-green-weak: var(--background-accent-green-weak);
   --color-background-accent-red-weak: var(--background-accent-red-weak);
-  --color-foreground-neutral-default: var(--foreground-neutral-default);
-  --color-foreground-neutral-weak: var(--foreground-neutral-weak);
-  --color-foreground-neutral-subtle: var(--foreground-neutral-subtle);
-  --color-foreground-neutral-muted: var(--foreground-neutral-muted);
-  --color-foreground-neutral-inverse: var(--foreground-neutral-inverse);
-  --color-foreground-brand-subtle: var(--foreground-brand-subtle);
-  --color-foreground-brand-strong: var(--foreground-brand-strong);
-  --color-foreground-accent-new: var(--foreground-accent-new);
-  --color-foreground-accent-error: var(--foreground-accent-error);
-  --color-foreground-accent-feedback-red: var(--foreground-accent-feedback-red);
-  --color-foreground-accent-feedback-brand: var(--foreground-accent-feedback-brand);
-  --color-foreground-accent-green: var(--foreground-accent-green);
+
+  --color-text-neutral-default: var(--text-neutral-default);
+  --color-text-neutral-weak: var(--text-neutral-weak);
+  --color-text-neutral-subtle: var(--text-neutral-subtle);
+  --color-text-neutral-muted: var(--text-neutral-muted);
+  --color-text-neutral-inverse: var(--text-neutral-inverse);
+  --color-text-brand-subtle: var(--text-brand-subtle);
+  --color-text-brand-strong: var(--text-brand-strong);
+  --color-text-accent-red: var(--text-accent-red);
+  --color-text-accent-green: var(--text-accent-green);
+
+  --color-icon-neutral-default: var(--icon-neutral-default);
+  --color-icon-neutral-weak: var(--icon-neutral-weak);
+  --color-icon-neutral-subtle: var(--icon-neutral-subtle);
+  --color-icon-neutral-muted: var(--icon-neutral-muted);
+  --color-icon-neutral-inverse: var(--icon-neutral-inverse);
+  --color-icon-brand-subtle: var(--icon-brand-subtle);
+  --color-icon-brand-strong: var(--icon-brand-strong);
+  --color-icon-accent-red: var(--icon-accent-red);
+  --color-icon-accent-green: var(--icon-accent-green);
+
   --color-action-primary: var(--action-primary);
   --color-action-hover: var(--action-hover);
   --color-action-pressed: var(--action-pressed);
   --color-action-disabled: var(--action-disabled);
+
   --color-border-default: var(--border-default);
   --color-border-weak: var(--border-weak);
   --color-border-strong: var(--border-strong);

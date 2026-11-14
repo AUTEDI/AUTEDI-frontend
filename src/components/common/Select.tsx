@@ -169,8 +169,8 @@ export default function Select({
         className={[
           'flex h-ds-40 w-full items-center justify-between gap-ds-10 rounded-ds-medium border border-solid px-ds-12 py-ds-10 text-left font-sans text-label2-semibold',
           'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focused',
-          disabled ? 'cursor-not-allowed border-border-disabled bg-background-neutral-disabled text-foreground-neutral-subtle'
-            : `cursor-pointer bg-background-neutral-default ${error ? 'border-border-error' : 'border-border-default'} ${selectedOption && !isLoading ? 'text-foreground-neutral-default' : 'text-foreground-neutral-subtle'}`,
+          disabled ? 'cursor-not-allowed border-border-disabled bg-background-neutral-disabled text-text-neutral-subtle'
+            : `cursor-pointer bg-background-neutral-default ${error ? 'border-border-error' : 'border-border-default'} ${selectedOption && !isLoading ? 'text-text-neutral-default' : 'text-text-neutral-subtle'}`,
         ].join(' ')}
         onClick={() => { if (isOpen) setOpen(false); else openList() }}
         onKeyDown={handleKeyDown}
@@ -199,8 +199,8 @@ export default function Select({
                   aria-disabled={option.disabled || undefined}
                   className={[
                     'flex min-h-ds-36 items-center justify-between gap-ds-10 px-ds-12 py-ds-10 font-sans text-label3-medium',
-                    option.disabled ? 'cursor-not-allowed text-foreground-neutral-subtle'
-                      : `${selected || active ? 'bg-background-brand-weak' : 'bg-background-neutral-default'} cursor-pointer ${selected ? 'text-foreground-neutral-default' : 'text-foreground-neutral-muted'}`,
+                    option.disabled ? 'cursor-not-allowed text-text-neutral-subtle'
+                      : `${selected || active ? 'bg-background-brand-weak' : 'bg-background-neutral-default'} cursor-pointer ${selected ? 'text-text-neutral-default' : 'text-text-neutral-muted'}`,
                   ].join(' ')}
                   onPointerMove={() => { if (!option.disabled) setActiveValue(option.value) }}
                   onMouseDown={event => event.preventDefault()}
@@ -212,10 +212,10 @@ export default function Select({
               )
             })}
           </ul>
-          {statusMessage && <p id={messageId} role={error && !isLoading ? 'alert' : 'status'} className="px-ds-12 py-ds-10 text-label3-medium text-foreground-neutral-muted">{statusMessage}</p>}
+          {statusMessage && <p id={messageId} role={error && !isLoading ? 'alert' : 'status'} className="px-ds-12 py-ds-10 text-label3-medium text-text-neutral-muted">{statusMessage}</p>}
         </div>
       )}
-      {!isOpen && statusMessage && <p id={messageId} role={error && !isLoading ? 'alert' : 'status'} className={error && !isLoading ? 'text-caption text-foreground-accent-error' : 'sr-only'}>{statusMessage}</p>}
+      {!isOpen && statusMessage && <p id={messageId} role={error && !isLoading ? 'alert' : 'status'} className={error && !isLoading ? 'text-caption text-text-accent-red' : 'sr-only'}>{statusMessage}</p>}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useId, useImperativeHandle, useRef, useState, type ComponentPropsWithRef } from 'react'
+import { useEffect, useId, useImperativeHandle, useRef, useState, type ComponentPropsWithRef } from 'react'
 import clearIcon from '../../assets/design-system/44a04.svg'
 import errorIcon from '../../assets/design-system/004b0.svg'
 
@@ -39,6 +39,7 @@ export default function TextField({
   error,
   clearable = true,
   id,
+  form,
   ref,
   className = '',
   disabled = false,
@@ -65,6 +66,19 @@ export default function TextField({
 
   useImperativeHandle(ref, () => inputRef.current!)
 
+  useEffect(() => {
+    if (value !== undefined) return
+    const ownerForm = inputRef.current?.form
+    function handleReset(event: Event) {
+      // 부모의 onReset에서 preventDefault()로 취소할 수 있도록 이벤트 종료 후 복원합니다.
+      queueMicrotask(() => {
+        if (!event.defaultPrevented) setInternalValue(defaultValue)
+      })
+    }
+    ownerForm?.addEventListener('reset', handleReset)
+    return () => ownerForm?.removeEventListener('reset', handleReset)
+  }, [defaultValue, value, form])
+
   function updateValue(nextValue: string) {
     if (value === undefined) setInternalValue(nextValue)
     onValueChange?.(nextValue)
@@ -85,6 +99,7 @@ export default function TextField({
           {...props}
           ref={inputRef}
           id={inputId}
+          form={form}
           type={type}
           value={currentValue}
           placeholder={placeholder}
@@ -92,7 +107,7 @@ export default function TextField({
           readOnly={readOnly}
           aria-invalid={hasError ? true : ariaInvalid}
           aria-describedby={[describedBy, errorId].filter(Boolean).join(' ') || undefined}
-          className="min-w-0 flex-1 border-0 bg-transparent p-0 font-sans text-label2-semibold text-foreground-neutral-default caret-foreground-accent-green outline-none placeholder:text-foreground-neutral-subtle disabled:cursor-not-allowed disabled:text-foreground-neutral-subtle [&::-webkit-search-cancel-button]:appearance-none"
+          className="min-w-0 flex-1 border-0 bg-transparent p-0 font-sans text-label2-semibold text-text-neutral-default caret-text-accent-green outline-none placeholder:text-text-neutral-subtle disabled:cursor-not-allowed disabled:text-text-neutral-subtle [&::-webkit-search-cancel-button]:appearance-none"
           onChange={event => updateValue(event.target.value)}
           onFocus={event => { setFocused(true); onFocus?.(event) }}
           onBlur={event => { setFocused(false); onBlur?.(event) }}
