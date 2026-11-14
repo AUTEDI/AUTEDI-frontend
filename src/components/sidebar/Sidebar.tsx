@@ -51,7 +51,7 @@ export default function Sidebar({
         className,
       ].join(' ')}
     >
-      <div className={`flex h-ds-60 shrink-0 items-center transition-[padding] duration-300 ease-in-out motion-reduce:transition-none ${isCollapsed ? 'px-[22px]' : 'px-ds-24'}`}>
+      <div className="flex h-ds-60 shrink-0 items-center px-[22px]">
         <Link to={logoTo} aria-label="AUTEDI 홈으로 이동" title={isCollapsed ? 'AUTEDI' : undefined} className={`inline-flex min-w-0 items-center transition-[gap] duration-300 ease-in-out motion-reduce:transition-none ${isCollapsed ? 'gap-0' : 'gap-ds-4'} ${focusClasses}`}>
           <img src={logo} alt="" width="28" height="28" className="shrink-0" />
           <span aria-hidden="true" className={`font-brand text-[22px] leading-[1.5] font-extrabold text-text-brand-strong ${labelTransitionClasses} ${isCollapsed ? 'max-w-0 -translate-x-1 opacity-0' : 'max-w-[104px] translate-x-0 opacity-100'}`}>AUTEDI</span>
