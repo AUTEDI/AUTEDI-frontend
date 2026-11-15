@@ -11,7 +11,7 @@
 
 ## 기술 스택
 
-React 19 · TypeScript · Vite · ESLint · Vercel
+React 19 · TypeScript · Vite · ESLint · Vercel · Zustand
 
 ## 협업 규칙
 
