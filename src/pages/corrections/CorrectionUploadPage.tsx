@@ -83,7 +83,7 @@ export default function CorrectionUploadPage() {
   const reviewing = pages.length > 0
 
   return (
-    <div className="flex min-h-full max-w-[1120px] flex-col gap-ds-24 p-ds-40 font-sans">
+    <div className="flex min-h-full w-full min-w-0 flex-col gap-ds-24 py-ds-40 pr-[120px] pl-ds-40 font-sans">
       <header className="flex items-center justify-between gap-ds-24">
         <div className="flex flex-col gap-ds-16">
           <h1 className="text-h1 text-text-neutral-default">AI 첨삭</h1>
