@@ -16,7 +16,7 @@ export type SidebarProps = Omit<ComponentPropsWithRef<'aside'>, 'children'> & {
 }
 
 const focusClasses = 'rounded-ds-small focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-border-focused'
-const labelTransitionClasses = 'min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,max-height,opacity,transform] duration-300 ease-in-out motion-reduce:transition-none'
+const labelTransitionClasses = 'pointer-events-none absolute inset-y-0 left-ds-32 flex items-center whitespace-nowrap transition-opacity duration-200 ease-out motion-reduce:transition-none'
 
 export default function Sidebar({
   items = sidebarItems,
@@ -52,9 +52,9 @@ export default function Sidebar({
       ].join(' ')}
     >
       <div className="flex h-ds-60 shrink-0 items-center px-[22px]">
-        <Link to={logoTo} aria-label="AUTEDI 홈으로 이동" title={isCollapsed ? 'AUTEDI' : undefined} className={`inline-flex min-w-0 items-center transition-[gap] duration-300 ease-in-out motion-reduce:transition-none ${isCollapsed ? 'gap-0' : 'gap-ds-4'} ${focusClasses}`}>
+        <Link to={logoTo} aria-label="AUTEDI 홈으로 이동" title={isCollapsed ? 'AUTEDI' : undefined} className={`relative inline-flex w-full min-w-0 items-center overflow-hidden ${focusClasses}`}>
           <img src={logo} alt="" width="28" height="28" className="shrink-0" />
-          <span aria-hidden="true" className={`font-brand text-[22px] leading-[1.5] font-extrabold text-text-brand-strong ${labelTransitionClasses} ${isCollapsed ? 'max-w-0 -translate-x-1 opacity-0' : 'max-w-[104px] translate-x-0 opacity-100'}`}>AUTEDI</span>
+          <span aria-hidden="true" className={`font-brand text-[22px] leading-[1.5] font-extrabold text-text-brand-strong ${labelTransitionClasses} ${isCollapsed ? 'opacity-0' : 'opacity-100'}`}>AUTEDI</span>
         </Link>
       </div>
       <div className="flex min-h-0 flex-1 flex-col px-ds-24 py-ds-16">
@@ -69,7 +69,7 @@ export default function Sidebar({
         >
           <img src={toggleIcon} alt="" width="19.6" height="15.1" className="max-w-none" />
         </button>
-        <nav id={navigationId} aria-label="주 메뉴" className="mt-ds-24 min-h-0 w-[calc(100%+var(--spacing-16))] flex-1 self-center overflow-y-auto p-ds-8">
+        <nav id={navigationId} aria-label="주 메뉴" className="mt-ds-24 min-h-0 w-[calc(100%+var(--spacing-16))] flex-1 self-center overflow-x-hidden overflow-y-auto p-ds-8">
           <ul className="flex flex-col gap-ds-32">
             {items.map(({ id, label, ...item }) => (
               <li key={id} className="shrink-0">
@@ -82,13 +82,14 @@ export default function Sidebar({
           to={helpTo}
           title={isCollapsed ? '도움말' : undefined}
           className={[
-            'mt-ds-16 inline-flex w-full shrink-0 items-center text-label2-semibold text-text-neutral-subtle transition-[gap,padding,min-height] duration-300 ease-in-out motion-reduce:transition-none',
-            isCollapsed ? 'min-h-ds-16 gap-0 pl-[4px]' : 'min-h-ds-20 gap-ds-8 pl-0',
+            'relative mt-ds-16 inline-flex min-h-ds-24 w-full shrink-0 items-center overflow-hidden text-label2-semibold text-text-neutral-subtle',
             focusClasses,
           ].join(' ')}
         >
-          <img src={helpIcon} alt="" width="16" height="16" className="shrink-0" />
-          <span className={`${labelTransitionClasses} ${isCollapsed ? 'max-h-0 max-w-0 -translate-x-1 opacity-0' : 'max-h-ds-20 max-w-[100px] translate-x-0 opacity-100'}`}>도움말</span>
+          <span aria-hidden="true" className="inline-flex size-ds-24 shrink-0 items-center justify-center">
+            <img src={helpIcon} alt="" width="16" height="16" />
+          </span>
+          <span className={`${labelTransitionClasses} ${isCollapsed ? 'opacity-0' : 'opacity-100'}`}>도움말</span>
         </Link>
       </div>
     </aside>
