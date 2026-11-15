@@ -1,5 +1,7 @@
 import arrowRight from '../../../assets/design-system/cta-arrow-right.svg'
 import CTAButton from '../../../components/common/CTAButton'
+import doran from '../../../assets/design-system/image.png'
+
 
 export default function StartCorrectionCard() {
   return (
@@ -22,8 +24,8 @@ export default function StartCorrectionCard() {
           </span>
         </CTAButton>
       </div>
-      {/* 그래픽이 확정되기 전까지 내부 이미지는 비워둡니다. */}
-      <div aria-hidden="true" className="h-[300px] w-[520px] shrink bg-white max-sm:hidden" />
+      {/* 그래픽이 확정되기 전까지 내부 이미지는 아무거나. */}
+      <img src={doran} alt="임시 도란 이미지" aria-hidden="true" className="h-[300px] w-[520px] shrink bg-white max-sm:hidden" />
     </section>
   )
 }

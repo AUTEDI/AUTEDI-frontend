@@ -9,7 +9,7 @@ function App() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route index element={<HomePage />} />
-        <Route path="corrections" element={<CorrectionUploadPage />} />
+        <Route path="corrections/*" element={<CorrectionUploadPage />} />
         <Route path="correction-history" element={<CorrectionHistoryPage />} />
         {/* 페이지 구현 후 null을 해당 페이지 컴포넌트로 교체합니다. */}
         <Route path="students/*" element={null} />

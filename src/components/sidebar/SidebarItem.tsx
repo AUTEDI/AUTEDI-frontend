@@ -37,9 +37,8 @@ export default function SidebarItem({
       {...props}
       title={title ?? (collapsed ? children : undefined)}
       className={state => [
-        'group flex min-h-ds-24 min-w-0 shrink-0 items-center font-sans text-label1-semibold transition-[width,gap] duration-300 ease-in-out motion-reduce:transition-none',
+        'group relative flex min-h-ds-24 w-full min-w-0 shrink-0 items-center font-sans text-label1-semibold',
         'rounded-ds-small focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-border-focused',
-        collapsed ? 'w-ds-24 gap-0' : 'w-full gap-ds-8',
         state.isActive ? 'text-text-brand-strong' : 'text-text-brand-subtle hover:text-text-brand-strong',
         typeof className === 'function' ? className(state) : className,
       ].join(' ')}
@@ -63,7 +62,7 @@ export default function SidebarItem({
               />
             ) : typeof icon === 'function' ? icon(state) : icon}
           </span>
-          <span className={`min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-300 ease-in-out motion-reduce:transition-none ${collapsed ? 'max-w-0 -translate-x-1 opacity-0' : 'max-w-[160px] translate-x-0 opacity-100'}`}>{children}</span>
+          <span className={`pointer-events-none absolute inset-y-0 left-ds-32 flex items-center whitespace-nowrap transition-opacity duration-200 ease-out motion-reduce:transition-none ${collapsed ? 'opacity-0' : 'opacity-100'}`}>{children}</span>
         </>
       )}
     </NavLink>
