@@ -23,7 +23,7 @@ export default function Sidebar({
   collapsed,
   defaultCollapsed = false,
   onCollapsedChange,
-  logoTo = '/',
+  logoTo = '/main',
   helpTo = '/help',
   className = '',
   'aria-label': ariaLabel = '사이드바',
