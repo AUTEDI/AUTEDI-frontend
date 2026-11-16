@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { getWorksheetImageUrl } from '../../apis/worksheets'
 import ActionButton from '../../components/common/ActionButton'
+import { photoError } from '../../utils/photo'
 import SegmentedControl from '../../components/common/SegmentedControl'
 import Select from '../../components/common/Select'
 import TextField from '../../components/common/TextField'
@@ -39,12 +41,6 @@ function loadLevels(): Levels {
   }
 }
 
-// shortcut: QR 세션 API가 없어 남은 시간을 고정값으로 보여준다, QR 발급 API를 붙일 때 서버 만료 시간으로 바꾼다.
-const QR_SECONDS = 180
-
-// 서버가 페이지 이미지로 바꿀 수 있는 사진 형식
-const IMAGE_TYPES = ['image/jpeg', 'image/png']
-
 /** AI 첨삭 1~2단계: 학습지 사진을 올리고(1) 확인한다(2). 파일 정보와 첨삭 영역도 여기서 정한다. */
 export default function CorrectionUploadPage() {
   const [title, setTitle] = useState('')
@@ -52,6 +48,7 @@ export default function CorrectionUploadPage() {
   const [levels, setLevels] = useState(loadLevels)
   const [qrOpen, setQrOpen] = useState(false)
   const [pages, setPages] = useState<PreviewPage[]>([])
+  const [uploadError, setUploadError] = useState('')
 
   // 화면을 떠날 때 미리보기용 주소를 해제한다.
   const pagesRef = useRef(pages)
@@ -62,12 +59,27 @@ export default function CorrectionUploadPage() {
 
   // shortcut: 업로드 API가 없어 브라우저 안에서만 미리 본다, 업로드 API를 붙일 때 서버에 올리고 업로드 중 상태를 켠다.
   const addFiles = (files: File[]) => {
-    // 끌어다 놓기는 파일 선택 창의 형식 제한을 거치지 않으므로 여기서 사진만 남긴다.
-    const images = files.filter((file) => IMAGE_TYPES.includes(file.type))
+    // 끌어다 놓기는 파일 선택 창의 형식 제한을 거치지 않으므로 여기서 형식·용량을 다시 본다.
+    const error = files.map(photoError).find(Boolean)
+    if (error) {
+      setUploadError(error)
+      return
+    }
+    setUploadError('')
     setPages((prev) => [
       ...prev,
-      ...images.map((file) => ({ id: crypto.randomUUID(), name: file.name, url: URL.createObjectURL(file) })),
+      ...files.map((file) => ({ id: crypto.randomUUID(), name: file.name, url: URL.createObjectURL(file) })),
     ])
+  }
+  // 휴대폰이 QR로 사진을 올리면 새 작업이 생기고, 그 사진을 불러와 확인 단계에 붙인다.
+  const addPhoneUpload = async (worksheetId: number) => {
+    setQrOpen(false)
+    try {
+      const url = await getWorksheetImageUrl(worksheetId)
+      setPages((prev) => [...prev, { id: `worksheet-${worksheetId}`, name: '휴대폰 사진', url }])
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : '휴대폰에서 올린 사진을 불러오지 못했어요.')
+    }
   }
   const removePage = (id: string) =>
     setPages((prev) => {
@@ -93,7 +105,15 @@ export default function CorrectionUploadPage() {
       </header>
 
       <div className="flex h-[652px] gap-ds-24">
-        {reviewing ? (
+        {uploadError ? (
+          <FileDropzone
+            className="min-w-px flex-1"
+            error={uploadError}
+            onDismissError={() => setUploadError('')}
+            onFilesSelected={addFiles}
+            onQrUploadClick={() => setQrOpen(true)}
+          />
+        ) : reviewing ? (
           <FilePreviewPanel className="min-w-px flex-1" pages={pages} onAddFiles={addFiles} onRemove={removePage} onClear={clearPages} />
         ) : (
           <FileDropzone className="min-w-px flex-1" onFilesSelected={addFiles} onQrUploadClick={() => setQrOpen(true)} />
@@ -165,7 +185,7 @@ export default function CorrectionUploadPage() {
         </aside>
       </div>
 
-      <QrUploadModal open={qrOpen} onClose={() => setQrOpen(false)} remainingSeconds={QR_SECONDS} onRefresh={() => {}} />
+      <QrUploadModal open={qrOpen} onClose={() => setQrOpen(false)} onUploaded={addPhoneUpload} />
     </div>
   )
 }
