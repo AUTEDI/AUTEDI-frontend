@@ -26,3 +26,8 @@ export type LoginResponse = {
   result: AuthSession | null
   error: unknown
 }
+
+export type LogoutResponse = {
+  isSuccess: boolean
+  message: string
+}

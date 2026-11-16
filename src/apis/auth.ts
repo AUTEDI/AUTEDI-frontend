@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { AuthSession, LoginCredentials, LoginResponse } from '../types/auth'
+import type { AuthSession, LoginCredentials, LoginResponse, LogoutResponse } from '../types/auth'
 import { apiClient } from './client'
 
 function isAuthSession(value: unknown): value is AuthSession {
@@ -49,4 +49,29 @@ export async function login(credentials: LoginCredentials): Promise<AuthSession>
     throw new Error('로그인 정보를 확인할 수 없어요. 잠시 후 다시 시도해주세요.')
   }
   return data.result
+}
+
+export async function logout(refreshToken: string, accessToken: string | null): Promise<void> {
+  let response
+  try {
+    response = await apiClient.post<LogoutResponse>(
+      '/api/v1/auth/logout',
+      { refreshToken },
+      { headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined },
+    )
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const message = serverMessage(error.response?.data)
+      if (message) throw new Error(message, { cause: error })
+      if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+        throw new Error('요청 시간이 초과됐어요. 잠시 후 다시 시도해주세요.', { cause: error })
+      }
+      if (!error.response) throw new Error('서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.', { cause: error })
+    }
+    throw new Error('로그아웃하지 못했어요. 다시 시도해주세요.', { cause: error })
+  }
+
+  if (response.status !== 204 && response.data?.isSuccess !== true) {
+    throw new Error(serverMessage(response.data) ?? '로그아웃하지 못했어요. 다시 시도해주세요.')
+  }
 }

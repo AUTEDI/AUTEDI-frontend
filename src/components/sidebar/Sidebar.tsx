@@ -13,6 +13,9 @@ export type SidebarProps = Omit<ComponentPropsWithRef<'aside'>, 'children'> & {
   onCollapsedChange?: (collapsed: boolean) => void
   logoTo?: To
   helpTo?: To
+  onLogout?: () => void
+  isLoggingOut?: boolean
+  logoutError?: string
 }
 
 const focusClasses = 'rounded-ds-small focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-border-focused'
@@ -25,11 +28,15 @@ export default function Sidebar({
   onCollapsedChange,
   logoTo = '/main',
   helpTo = '/help',
+  onLogout,
+  isLoggingOut = false,
+  logoutError = '',
   className = '',
   'aria-label': ariaLabel = '사이드바',
   ...props
 }: SidebarProps) {
   const navigationId = useId()
+  const logoutErrorId = useId()
   const [internalCollapsed, setInternalCollapsed] = useState(defaultCollapsed)
   const isCollapsed = collapsed ?? internalCollapsed
   const toggleLabel = isCollapsed ? '사이드바 펼치기' : '사이드바 접기'
@@ -78,6 +85,33 @@ export default function Sidebar({
             ))}
           </ul>
         </nav>
+        <button
+          type="button"
+          onClick={onLogout}
+          disabled={!onLogout || isLoggingOut}
+          aria-label={isLoggingOut ? '로그아웃 중' : '로그아웃'}
+          aria-busy={isLoggingOut}
+          aria-describedby={logoutError ? logoutErrorId : undefined}
+          title={isCollapsed ? logoutError || '로그아웃' : undefined}
+          className={[
+            'relative mt-ds-16 inline-flex min-h-ds-24 w-full shrink-0 cursor-pointer items-center overflow-hidden text-label2-semibold text-text-neutral-subtle hover:text-text-neutral-default disabled:cursor-not-allowed disabled:opacity-50',
+            focusClasses,
+          ].join(' ')}
+        >
+          <span aria-hidden="true" className="inline-flex size-ds-24 shrink-0 items-center justify-center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+            </svg>
+          </span>
+          <span aria-hidden="true" className={`${labelTransitionClasses} ${isCollapsed ? 'opacity-0' : 'opacity-100'}`}>
+            {isLoggingOut ? '로그아웃 중...' : '로그아웃'}
+          </span>
+        </button>
+        {logoutError && (
+          <p id={logoutErrorId} role="alert" className={isCollapsed ? 'sr-only' : 'mt-ds-8 shrink-0 break-words text-caption text-text-accent-red'}>
+            {logoutError}
+          </p>
+        )}
         <Link
           to={helpTo}
           title={isCollapsed ? '도움말' : undefined}
