@@ -1,12 +1,12 @@
-import type { User, UserRole } from '../../../types/user'
+import type { AuthUser } from '../../../types/auth'
 
-const roleLabels: Record<UserRole, string> = {
-  director: '원장님',
-  teacher: '선생님',
+const roleLabels: Record<string, string> = {
+  DIRECTOR: '원장님',
+  TEACHER: '선생님',
 }
 
-export default function HomeWelcome({ user }: { user: User }) {
-  const displayName = `${user.name} ${roleLabels[user.role]}`
+export default function HomeWelcome({ user }: { user: AuthUser }) {
+  const displayName = [user.name, roleLabels[user.role]].filter(Boolean).join(' ')
 
   return (
     <div className="flex flex-col gap-ds-16">
