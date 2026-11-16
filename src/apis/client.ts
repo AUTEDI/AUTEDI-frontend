@@ -1,4 +1,4 @@
-import axios, { type AxiosRequestConfig } from 'axios'
+import axios, { type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '../stores/useAuthStore'
 
 export const apiClient = axios.create({
@@ -68,3 +68,50 @@ export async function request(config: AxiosRequestConfig, fallbackMessage: strin
   }
   return (data as { result?: unknown }).result ?? null
 }
+
+let refreshing: Promise<string> | null = null
+
+/**
+ * refreshToken으로 새 토큰 쌍을 받아 저장하고 새 accessToken을 돌려준다.
+ * Refresh Token Rotation이라 여러 곳에서 동시에 불러도 요청은 한 번만 보낸다(두 번 보내면 앞의 토큰이 무효가 된다).
+ * 서버가 거절하면 로그아웃시킨다. 네트워크 오류일 때는 로그인을 그대로 둔다.
+ */
+export function refreshAccessToken(): Promise<string> {
+  refreshing ??= (async () => {
+    const { refreshToken, clearSession } = useAuthStore.getState()
+    const expired = '로그인이 만료됐어요. 다시 로그인해 주세요.'
+    try {
+      if (!refreshToken) throw new ApiError(expired, { status: 401 })
+      const result = await request({ method: 'post', url: '/api/v1/auth/refresh', data: { refreshToken } }, expired)
+      const { accessToken, refreshToken: nextRefreshToken } = (result ?? {}) as Record<string, unknown>
+      if (typeof accessToken !== 'string' || !accessToken || typeof nextRefreshToken !== 'string' || !nextRefreshToken) {
+        throw new ApiError(expired, { status: 401 })
+      }
+      useAuthStore.setState({ accessToken, refreshToken: nextRefreshToken })
+      return accessToken
+    } catch (error) {
+      if (error instanceof ApiError && error.status !== undefined) clearSession()
+      throw error
+    }
+  })().finally(() => {
+    refreshing = null
+  })
+  return refreshing
+}
+
+// 로그인 토큰을 실어 보낸 요청이 401이면 토큰을 재발급받아 한 번만 다시 보낸다.
+// 로그인·QR 스캔처럼 토큰 없이 보내는 요청의 401은 그대로 돌려준다.
+apiClient.interceptors.response.use(undefined, async (error: unknown) => {
+  if (!axios.isAxiosError(error) || error.response?.status !== 401) throw error
+  const config = error.config as (InternalAxiosRequestConfig & { retriedAfterRefresh?: boolean }) | undefined
+  if (!config || config.retriedAfterRefresh || !config.headers.Authorization) throw error
+  config.retriedAfterRefresh = true
+  let accessToken: string
+  try {
+    accessToken = await refreshAccessToken()
+  } catch {
+    throw error
+  }
+  config.headers.Authorization = `Bearer ${accessToken}`
+  return apiClient.request(config)
+})
