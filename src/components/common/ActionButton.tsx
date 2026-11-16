@@ -2,13 +2,14 @@ import type { ComponentPropsWithRef } from 'react'
 import { buttonBaseClasses, buttonBorderClasses, buttonStateClasses, type ButtonState } from './ButtonStyles'
 
 export type ActionButtonProps = ComponentPropsWithRef<'button'> & {
-  size?: 'sm' | 'md'
+  size?: 'sm' | 'md' | 'lg'
   state?: ButtonState
 }
 
 const sizeClasses = {
   sm: 'h-[30px] gap-ds-12 px-ds-16 py-ds-4 text-label2-semibold',
   md: 'h-[42px] px-ds-24 py-ds-8 text-label1-semibold',
+  lg: 'h-ds-48 px-ds-24 py-ds-12 text-label1-semibold',
 } as const
 
 export default function ActionButton({

@@ -13,6 +13,13 @@
 
 React 19 · TypeScript · Vite · ESLint · Vercel · Zustand
 
+## 개발 서버 설정
+
+`.env.example`을 참고해 `.env`의 `VITE_API_BASE_URL`에 백엔드 주소를 설정합니다. 개발 서버 실행과 배포 빌드에 필수이며, 배포 환경에도 같은 이름의 환경변수를 등록해야 합니다.
+로컬 개발에서는 Vite의 `/api` 프록시를 사용하고, 배포 빌드에서는 설정한 API 주소로 직접 요청합니다. 배포 도메인은 백엔드 CORS 허용 출처에 등록해야 합니다.
+로그인은 `POST /api/v1/auth/login`에 이메일과 비밀번호를 보내며, 성공 응답의 토큰과 사용자 정보는 Zustand 및 현재 탭의 `sessionStorage`에 저장됩니다.
+인증된 사용자는 `/main`으로 이동하며, GNB와 홈 환영 문구에 응답의 학원명·사용자명이 표시됩니다.
+
 ## 협업 규칙
 
 **작업 순서**: 이슈 생성 → 브랜치 생성 → 커밋 → PR → `develop` 병합 (`main`에 직접 push 금지)

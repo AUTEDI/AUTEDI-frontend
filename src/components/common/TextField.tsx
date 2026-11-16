@@ -1,6 +1,8 @@
 import { useEffect, useId, useImperativeHandle, useRef, useState, type ComponentPropsWithRef } from 'react'
 import clearIcon from '../../assets/design-system/44a04.svg'
 import errorIcon from '../../assets/design-system/004b0.svg'
+import eyeHiddenIcon from '../../assets/design-system/icon-eye-hidden.svg'
+import eyeVisibleIcon from '../../assets/design-system/icon-eye-visible.svg'
 
 export type TextFieldState = 'default' | 'tapped' | 'typing' | 'entered' | 'error' | 'disabled'
 
@@ -17,6 +19,10 @@ export type TextFieldProps = Omit<
   state?: TextFieldState
   error?: string
   clearable?: boolean
+  /** 비밀번호 입력에 표시·숨김 버튼을 제공한다. 지우기 버튼 대신 표시된다. */
+  showPasswordToggle?: boolean
+  /** 부모 너비를 채운다. 기본 너비는 240px이다. */
+  fullWidth?: boolean
 }
 
 const stateClasses = {
@@ -38,6 +44,8 @@ export default function TextField({
   state,
   error,
   clearable = true,
+  showPasswordToggle = false,
+  fullWidth = false,
   id,
   form,
   ref,
@@ -56,13 +64,16 @@ export default function TextField({
   const inputRef = useRef<HTMLInputElement>(null)
   const [internalValue, setInternalValue] = useState(defaultValue)
   const [focused, setFocused] = useState(false)
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const currentValue = value ?? internalValue
   const isDisabled = disabled || state === 'disabled'
   const hasError = Boolean(error) || state === 'error' || ariaInvalid === true || ariaInvalid === 'true'
   const automaticState = focused ? (currentValue ? 'typing' : 'tapped') : (currentValue ? 'entered' : 'default')
   const resolvedState = isDisabled ? 'disabled' : hasError ? 'error' : state ?? automaticState
   const errorId = error ? `${inputId}-error` : undefined
-  const canClear = clearable && currentValue.length > 0 && !isDisabled && !readOnly
+  const canTogglePassword = type === 'password' && showPasswordToggle
+  const passwordVisible = canTogglePassword && isPasswordVisible
+  const canClear = clearable && !canTogglePassword && currentValue.length > 0 && !isDisabled && !readOnly
 
   useImperativeHandle(ref, () => inputRef.current!)
 
@@ -85,7 +96,7 @@ export default function TextField({
   }
 
   return (
-    <div className={`flex w-[240px] max-w-full flex-col gap-ds-4 ${className}`}>
+    <div className={`flex max-w-full flex-col gap-ds-4 ${fullWidth ? 'w-full' : 'w-[240px]'} ${className}`}>
       <label htmlFor={inputId} className={showLabel ? 'text-label2-medium' : 'sr-only'}>{label}</label>
       <div
         data-state={resolvedState}
@@ -100,7 +111,7 @@ export default function TextField({
           ref={inputRef}
           id={inputId}
           form={form}
-          type={type}
+          type={passwordVisible ? 'text' : type}
           value={currentValue}
           placeholder={placeholder}
           disabled={isDisabled}
@@ -112,6 +123,24 @@ export default function TextField({
           onFocus={event => { setFocused(true); onFocus?.(event) }}
           onBlur={event => { setFocused(false); onBlur?.(event) }}
         />
+        {canTogglePassword && (
+          <button
+            type="button"
+            aria-label={`${label} ${passwordVisible ? '숨기기' : '표시'}`}
+            aria-controls={inputId}
+            aria-pressed={passwordVisible}
+            disabled={isDisabled}
+            className="relative inline-flex size-ds-16 shrink-0 cursor-pointer items-center justify-center rounded-ds-small focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focused disabled:cursor-not-allowed disabled:opacity-40"
+            onMouseDown={event => event.preventDefault()}
+            onClick={() => setIsPasswordVisible(visible => !visible)}
+          >
+            <img
+              src={passwordVisible ? eyeVisibleIcon : eyeHiddenIcon}
+              alt=""
+              className={passwordVisible ? 'absolute top-[3.375px] left-[1.375px] max-w-none' : 'max-w-none'}
+            />
+          </button>
+        )}
         {canClear && (
           <button
             type="button"
@@ -125,7 +154,7 @@ export default function TextField({
         )}
       </div>
       {error && (
-        <p id={errorId} role="alert" className="flex items-start gap-ds-4 font-sans text-[length:var(--unit-10)] leading-[var(--line-height-18)] text-black">
+        <p id={errorId} role="alert" className="flex items-start gap-ds-4 font-sans text-[length:var(--unit-10)] leading-[var(--line-height-18)] text-text-accent-red">
           <img src={errorIcon} width="12" height="12" alt="" className="mt-[3px] shrink-0" />
           <span>{error}</span>
         </p>
