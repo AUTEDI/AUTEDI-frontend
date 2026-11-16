@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
 import { ApiError } from '../../apis/client'
 import { getQrStatus, issueQrToken, linkQr, scanQr, type QrLogin } from '../../apis/qr'
-import { uploadWorksheetPhoto } from '../../apis/worksheets'
+import { createWorksheet, replaceWorksheetFile } from '../../apis/worksheets'
 import ActionButton from '../../components/common/ActionButton'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { PHOTO_TYPES, photoError } from '../../utils/photo'
@@ -56,8 +56,7 @@ async function connect(qrToken: string, isActive: () => boolean, onWaiting: () =
     try {
       return await retryOn429(() => linkQr(qrToken, savedToken))
     } catch (error) {
-      // 다른 계정으로 로그인돼 있거나(QR_005) 토큰이 만료됐으면(401) 승인 흐름으로 넘어간다.
-      // shortcut: refresh API가 아직 없어 401이면 바로 승인 흐름으로 간다, refresh API가 생기면 재발급 후 link를 한 번 더 시도한다.
+      // 다른 계정으로 로그인돼 있거나(QR_005) 토큰 재발급까지 실패했으면(401) 승인 흐름으로 넘어간다.
       if (!(error instanceof ApiError && (error.status === 401 || error.code === 'QR_005'))) throw error
     }
   }
@@ -167,7 +166,9 @@ function PhotoUpload({
     setUploading(true)
     setError('')
     try {
-      await uploadWorksheetPhoto(file, worksheetId)
+      // 첫 사진용 QR이면 새 학습지를 만들고, 사진 교체용 QR이면 그 학습지의 사진을 바꾼다.
+      if (worksheetId === null) await createWorksheet([file])
+      else await replaceWorksheetFile(worksheetId, file)
       onDone()
     } catch (uploadError) {
       // QR을 다 썼거나(QR_006) 세션이 정리됐으면(QR_002) 새 QR이 필요하다. 나머지는 같은 QR로 다시 올릴 수 있다.

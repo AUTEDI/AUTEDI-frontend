@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { getWorksheetImageUrl } from '../../apis/worksheets'
+import { createWorksheet, getWorksheetFile, saveWorksheetSettings, type CorrectionArea } from '../../apis/worksheets'
 import ActionButton from '../../components/common/ActionButton'
 import { photoError } from '../../utils/photo'
 import SegmentedControl from '../../components/common/SegmentedControl'
@@ -13,11 +13,11 @@ import Stepper from './components/Stepper'
 type Level = 'standard' | 'advanced'
 
 const AREAS = [
-  { id: 'grammar', label: '문법 및 철자' },
-  { id: 'vocabulary', label: '어휘 및 표현' },
-  { id: 'structure', label: '문장 구성' },
-  { id: 'content', label: '내용 및 요약' },
-] as const
+  { id: 'grammar', area: 'GRAMMAR_SPELLING', label: '문법 및 철자' },
+  { id: 'vocabulary', area: 'VOCABULARY_EXPRESSION', label: '어휘 및 표현' },
+  { id: 'structure', area: 'SENTENCE_STRUCTURE', label: '문장 구성' },
+  { id: 'content', area: 'CONTENT_SUMMARY', label: '내용 및 요약' },
+] as const satisfies readonly { id: string; area: CorrectionArea; label: string }[]
 
 type AreaId = (typeof AREAS)[number]['id']
 type Levels = Record<AreaId, Level>
@@ -41,14 +41,23 @@ function loadLevels(): Levels {
   }
 }
 
+/** 올릴 파일과, 휴대폰이 이미 만든 학습지라면 그 ID */
+type UploadPage = PreviewPage & { file: File; worksheetId?: number }
+
 /** AI 첨삭 1~2단계: 학습지 사진을 올리고(1) 확인한다(2). 파일 정보와 첨삭 영역도 여기서 정한다. */
 export default function CorrectionUploadPage() {
   const [title, setTitle] = useState('')
   const [studentId, setStudentId] = useState('')
   const [levels, setLevels] = useState(loadLevels)
   const [qrOpen, setQrOpen] = useState(false)
-  const [pages, setPages] = useState<PreviewPage[]>([])
+  const [pages, setPages] = useState<UploadPage[]>([])
   const [uploadError, setUploadError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  // 마지막으로 저장한 학습지. 페이지 목록이 그대로면 다시 올리지 않고 설정만 다시 저장한다.
+  // levels가 null이면 학습지만 올라가고 설정 저장은 아직 못 한 상태다.
+  const [savedWorksheet, setSavedWorksheet] = useState<{ id: number; pages: UploadPage[]; levels: Levels | null } | null>(null)
+  const uploadAbortRef = useRef<AbortController | null>(null)
+  const saved = savedWorksheet?.pages === pages && savedWorksheet.levels === levels
 
   // 화면을 떠날 때 미리보기용 주소를 해제한다.
   const pagesRef = useRef(pages)
@@ -57,7 +66,7 @@ export default function CorrectionUploadPage() {
   }, [pages])
   useEffect(() => () => pagesRef.current.forEach((page) => URL.revokeObjectURL(page.url)), [])
 
-  // shortcut: 업로드 API가 없어 브라우저 안에서만 미리 본다, 업로드 API를 붙일 때 서버에 올리고 업로드 중 상태를 켠다.
+  // 이미 만든 학습지에 사진을 덧붙이는 API가 없어, 고른 사진은 확인을 누를 때 한 번에 올린다.
   const addFiles = (files: File[]) => {
     // 끌어다 놓기는 파일 선택 창의 형식 제한을 거치지 않으므로 여기서 형식·용량을 다시 본다.
     const error = files.map(photoError).find(Boolean)
@@ -68,17 +77,46 @@ export default function CorrectionUploadPage() {
     setUploadError('')
     setPages((prev) => [
       ...prev,
-      ...files.map((file) => ({ id: crypto.randomUUID(), name: file.name, url: URL.createObjectURL(file) })),
+      ...files.map((file) => ({ id: crypto.randomUUID(), name: file.name, url: URL.createObjectURL(file), file })),
     ])
   }
-  // 휴대폰이 QR로 사진을 올리면 새 작업이 생기고, 그 사진을 불러와 확인 단계에 붙인다.
+  // 휴대폰이 QR로 사진을 올리면 새 학습지가 생기고, 그 사진을 불러와 확인 단계에 붙인다.
   const addPhoneUpload = async (worksheetId: number) => {
     setQrOpen(false)
     try {
-      const url = await getWorksheetImageUrl(worksheetId)
-      setPages((prev) => [...prev, { id: `worksheet-${worksheetId}`, name: '휴대폰 사진', url }])
+      const file = await getWorksheetFile(worksheetId)
+      setPages((prev) => [
+        ...prev,
+        { id: `worksheet-${worksheetId}`, name: '휴대폰 사진', url: URL.createObjectURL(file), file, worksheetId },
+      ])
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : '휴대폰에서 올린 사진을 불러오지 못했어요.')
+    }
+  }
+  const confirm = async () => {
+    if (submitting) return
+    const controller = new AbortController()
+    uploadAbortRef.current = controller
+    setSubmitting(true)
+    try {
+      // 휴대폰 사진 한 장뿐이면 이미 만들어진 학습지를 쓰고, 노트북 사진이 섞이면 전부 새 학습지로 올린다.
+      const phoneWorksheetId = pages.length === 1 ? pages[0].worksheetId : undefined
+      const id =
+        savedWorksheet?.pages === pages ? savedWorksheet.id
+        : (phoneWorksheetId ?? (await createWorksheet(pages.map((page) => page.file), controller.signal)))
+      // 설정 저장이 실패해도 다시 확인을 누를 때 학습지를 또 만들지 않도록 먼저 기록한다.
+      setSavedWorksheet({ id, pages, levels: null })
+      await saveWorksheetSettings(
+        id,
+        AREAS.map(({ id: key, area }) => ({ area, level: levels[key] === 'advanced' ? 'ADVANCED' : 'STANDARD' })),
+      )
+      setSavedWorksheet({ id, pages, levels })
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setUploadError(error instanceof Error ? error.message : '학습지를 올리지 못했어요. 다시 시도해 주세요.')
+      }
+    } finally {
+      setSubmitting(false)
     }
   }
   const removePage = (id: string) =>
@@ -105,7 +143,15 @@ export default function CorrectionUploadPage() {
       </header>
 
       <div className="flex h-[652px] gap-ds-24">
-        {uploadError ? (
+        {submitting ? (
+          <FileDropzone
+            className="min-w-px flex-1"
+            uploading
+            onCancelUpload={() => uploadAbortRef.current?.abort()}
+            onFilesSelected={addFiles}
+            onQrUploadClick={() => setQrOpen(true)}
+          />
+        ) : uploadError ? (
           <FileDropzone
             className="min-w-px flex-1"
             error={uploadError}
@@ -128,6 +174,7 @@ export default function CorrectionUploadPage() {
             <div className="flex flex-col gap-ds-16">
               <div className="flex items-center gap-ds-8">
                 <span aria-hidden="true" className="w-[100px] text-label2-semibold text-text-neutral-muted">파일 제목</span>
+                {/* shortcut: 학습지 API에 제목 필드가 없어 화면에만 둔다, 백엔드에 필드가 생기면 업로드 때 함께 보낸다. */}
                 <TextField label="파일 제목" value={title} onValueChange={setTitle} />
               </div>
               <div className="flex items-center gap-ds-8">
@@ -168,16 +215,22 @@ export default function CorrectionUploadPage() {
           </section>
 
           {reviewing && (
-            <div className="mt-auto flex justify-end gap-ds-8">
+            <div className="mt-auto flex items-center justify-end gap-ds-8">
+              {saved && (
+                <p role="status" className="mr-auto text-body2-regular text-text-neutral-muted">
+                  학습지와 첨삭 영역을 저장했어요.
+                </p>
+              )}
               <button
                 type="button"
+                disabled={submitting}
                 onClick={clearPages}
                 className="rounded-ds-small border border-solid border-border-default bg-background-neutral-default px-ds-24 py-ds-8 text-label1-semibold text-text-neutral-default hover:bg-background-neutral-weak focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focused"
               >
                 취소
               </button>
-              {/* shortcut: AI 첨삭 생성 단계가 아직 없어 누르면 아무 일도 없다, 생성 화면을 만들 때 연결한다. */}
-              <ActionButton size="md">
+              {/* shortcut: AI 첨삭 생성 단계가 아직 없어 학습지와 설정 저장까지만 한다, 생성 화면을 만들 때 저장 후 생성 요청으로 넘어간다. */}
+              <ActionButton size="md" disabled={submitting || saved} onClick={confirm}>
                 확인
               </ActionButton>
             </div>
