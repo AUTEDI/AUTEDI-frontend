@@ -52,6 +52,8 @@ export default function CorrectionUploadPage() {
   const [qrOpen, setQrOpen] = useState(false)
   const [pages, setPages] = useState<UploadPage[]>([])
   const [uploadError, setUploadError] = useState('')
+  // 확인(업로드·설정 저장) 실패. 재업로드 버튼이 파일을 새로 고르지 않고 같은 페이지로 다시 시도한다.
+  const [confirmError, setConfirmError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   // 마지막으로 저장한 학습지. 페이지 목록이 그대로면 다시 올리지 않고 설정만 다시 저장한다.
   // levels가 null이면 학습지만 올라가고 설정 저장은 아직 못 한 상태다.
@@ -69,6 +71,7 @@ export default function CorrectionUploadPage() {
   // 이미 만든 학습지에 사진을 덧붙이는 API가 없어, 고른 사진은 확인을 누를 때 한 번에 올린다.
   const addFiles = (files: File[]) => {
     // 끌어다 놓기는 파일 선택 창의 형식 제한을 거치지 않으므로 여기서 형식·용량을 다시 본다.
+    setConfirmError('')
     const error = files.map(photoError).find(Boolean)
     if (error) {
       setUploadError(error)
@@ -98,6 +101,7 @@ export default function CorrectionUploadPage() {
     const controller = new AbortController()
     uploadAbortRef.current = controller
     setSubmitting(true)
+    setConfirmError('')
     try {
       // 휴대폰 사진 한 장뿐이면 이미 만들어진 학습지를 쓰고, 노트북 사진이 섞이면 전부 새 학습지로 올린다.
       const phoneWorksheetId = pages.length === 1 ? pages[0].worksheetId : undefined
@@ -109,11 +113,12 @@ export default function CorrectionUploadPage() {
       await saveWorksheetSettings(
         id,
         AREAS.map(({ id: key, area }) => ({ area, level: levels[key] === 'advanced' ? 'ADVANCED' : 'STANDARD' })),
+        controller.signal,
       )
       setSavedWorksheet({ id, pages, levels })
     } catch (error) {
       if (!controller.signal.aborted) {
-        setUploadError(error instanceof Error ? error.message : '학습지를 올리지 못했어요. 다시 시도해 주세요.')
+        setConfirmError(error instanceof Error ? error.message : '학습지를 올리지 못했어요. 다시 시도해 주세요.')
       }
     } finally {
       setSubmitting(false)
@@ -125,11 +130,13 @@ export default function CorrectionUploadPage() {
       if (page) URL.revokeObjectURL(page.url)
       return prev.filter((item) => item.id !== id)
     })
-  const clearPages = () =>
+  const clearPages = () => {
+    setConfirmError('')
     setPages((prev) => {
       prev.forEach((page) => URL.revokeObjectURL(page.url))
       return []
     })
+  }
   const reviewing = pages.length > 0
 
   return (
@@ -148,6 +155,15 @@ export default function CorrectionUploadPage() {
             className="min-w-px flex-1"
             uploading
             onCancelUpload={() => uploadAbortRef.current?.abort()}
+            onFilesSelected={addFiles}
+            onQrUploadClick={() => setQrOpen(true)}
+          />
+        ) : confirmError ? (
+          <FileDropzone
+            className="min-w-px flex-1"
+            error={confirmError}
+            onDismissError={() => setConfirmError('')}
+            onRetry={confirm}
             onFilesSelected={addFiles}
             onQrUploadClick={() => setQrOpen(true)}
           />

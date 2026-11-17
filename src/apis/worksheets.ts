@@ -48,9 +48,10 @@ export async function getWorksheetFile(worksheetId: number): Promise<File> {
 export async function saveWorksheetSettings(
   worksheetId: number,
   areas: { area: CorrectionArea; level: CorrectionLevel }[],
+  signal?: AbortSignal,
 ): Promise<void> {
   await request(
-    { method: 'put', url: `/api/v1/worksheets/${worksheetId}/settings`, data: { areas }, headers: authHeader() },
+    { method: 'put', url: `/api/v1/worksheets/${worksheetId}/settings`, data: { areas }, headers: authHeader(), signal },
     '첨삭 영역을 저장하지 못했어요. 다시 시도해 주세요.',
   )
 }

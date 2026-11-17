@@ -11,6 +11,8 @@ export type FileDropzoneProps = {
   /** 업로드 실패 안내 문구. 있으면 실패 화면과 취소·재업로드 버튼을 보여준다. */
   error?: string
   onDismissError?: () => void
+  /** 있으면 재업로드 버튼이 파일을 다시 고르는 대신 이 동작으로 다시 시도한다. */
+  onRetry?: () => void
   className?: string
 }
 
@@ -28,6 +30,7 @@ export default function FileDropzone({
   onCancelUpload,
   error,
   onDismissError,
+  onRetry,
   className = '',
 }: FileDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -35,12 +38,23 @@ export default function FileDropzone({
 
   const openPicker = () => inputRef.current?.click()
 
-  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault()
-    setDragging(false)
-    const files = Array.from(event.dataTransfer.files)
-    if (files.length) onFilesSelected(files)
+  const dropTarget = {
+    onDragOver: (event: DragEvent<HTMLDivElement>) => {
+      event.preventDefault()
+      setDragging(true)
+    },
+    onDragLeave: (event: DragEvent<HTMLDivElement>) => {
+      // 안쪽 요소로 옮겨갈 때 생기는 dragleave는 무시한다.
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false)
+    },
+    onDrop: (event: DragEvent<HTMLDivElement>) => {
+      event.preventDefault()
+      setDragging(false)
+      const files = Array.from(event.dataTransfer.files)
+      if (files.length) onFilesSelected(files)
+    },
   }
+  const dragOutline = dragging ? 'outline-2 outline-offset-[-2px] outline-dashed outline-border-focused' : ''
 
   const iconBox = (
     <span className="flex size-[64px] items-center justify-center rounded-ds-medium bg-[var(--color-blue-100)]">
@@ -68,7 +82,8 @@ export default function FileDropzone({
     return (
       <div
         role="alert"
-        className={`relative flex flex-col items-center justify-center overflow-clip rounded-ds-large bg-background-brand-weak p-[36px] font-sans ${className}`}
+        {...dropTarget}
+        className={`relative flex flex-col items-center justify-center overflow-clip rounded-ds-large bg-background-brand-weak p-[36px] font-sans ${dragOutline} ${className}`}
       >
         {fileInput}
         <div className="flex flex-col items-center gap-ds-8 text-center">
@@ -79,7 +94,7 @@ export default function FileDropzone({
           <button type="button" onClick={onDismissError} className={failureButton}>
             취소
           </button>
-          <button type="button" onClick={openPicker} className={failureButton}>
+          <button type="button" onClick={onRetry ?? openPicker} className={failureButton}>
             재업로드 하기
           </button>
         </div>
@@ -116,18 +131,8 @@ export default function FileDropzone({
   return (
     <div
       onClick={openPicker}
-      onDragOver={(event) => {
-        event.preventDefault()
-        setDragging(true)
-      }}
-      onDragLeave={(event) => {
-        // 안쪽 요소로 옮겨갈 때 생기는 dragleave는 무시한다.
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false)
-      }}
-      onDrop={handleDrop}
-      className={`flex cursor-pointer flex-col items-center justify-center gap-ds-48 overflow-clip rounded-ds-large bg-background-brand-weak px-ds-24 py-[36px] font-sans ${
-        dragging ? 'outline-2 outline-offset-[-2px] outline-dashed outline-border-focused' : ''
-      } ${className}`}
+      {...dropTarget}
+      className={`flex cursor-pointer flex-col items-center justify-center gap-ds-48 overflow-clip rounded-ds-large bg-background-brand-weak px-ds-24 py-[36px] font-sans ${dragOutline} ${className}`}
     >
       {fileInput}
       <button

@@ -23,6 +23,15 @@ function serverCode(value: unknown): string | undefined {
   return typeof code === 'string' ? code : undefined
 }
 
+/** Retry-After는 초 또는 HTTP 날짜로 온다. 둘 다 남은 초로 바꾼다. */
+function retryAfterSeconds(value: unknown): number | undefined {
+  if (typeof value !== 'string' || !value.trim()) return undefined
+  const seconds = Number(value)
+  if (Number.isFinite(seconds)) return Math.max(0, seconds)
+  const date = Date.parse(value)
+  return Number.isNaN(date) ? undefined : Math.max(0, (date - Date.now()) / 1000)
+}
+
 /** 화면에서 에러 코드(QR_005 등)와 HTTP 상태로 분기할 수 있게 담아 둔 API 에러 */
 export class ApiError extends Error {
   readonly status?: number
@@ -56,7 +65,7 @@ export async function request(config: AxiosRequestConfig, fallbackMessage: strin
     throw new ApiError(serverMessage(failed.data) ?? fallbackMessage, {
       status: failed.status,
       code: serverCode(failed.data),
-      retryAfter: Number(failed.headers['retry-after']) || undefined,
+      retryAfter: retryAfterSeconds(failed.headers['retry-after']),
       cause: error,
     })
   }
@@ -74,12 +83,14 @@ let refreshing: Promise<string> | null = null
 /**
  * refreshToken으로 새 토큰 쌍을 받아 저장하고 새 accessToken을 돌려준다.
  * Refresh Token Rotation이라 여러 곳에서 동시에 불러도 요청은 한 번만 보낸다(두 번 보내면 앞의 토큰이 무효가 된다).
- * 서버가 거절하면 로그아웃시킨다. 네트워크 오류일 때는 로그인을 그대로 둔다.
+ * 서버가 토큰을 거절(4xx)하면 로그아웃시킨다. 네트워크 오류·5xx·429일 때는 로그인을 그대로 둔다.
  */
 export function refreshAccessToken(): Promise<string> {
   refreshing ??= (async () => {
     const { refreshToken, clearSession } = useAuthStore.getState()
     const expired = '로그인이 만료됐어요. 다시 로그인해 주세요.'
+    // 재발급하는 동안 로그아웃되거나 QR 로그인으로 세션이 바뀌었으면 그 세션은 덮어쓰거나 지우지 않는다.
+    const sameSession = () => useAuthStore.getState().refreshToken === refreshToken
     try {
       if (!refreshToken) throw new ApiError(expired, { status: 401 })
       const result = await request({ method: 'post', url: '/api/v1/auth/refresh', data: { refreshToken } }, expired)
@@ -87,10 +98,17 @@ export function refreshAccessToken(): Promise<string> {
       if (typeof accessToken !== 'string' || !accessToken || typeof nextRefreshToken !== 'string' || !nextRefreshToken) {
         throw new ApiError(expired, { status: 401 })
       }
+      if (!sameSession()) {
+        const current = useAuthStore.getState().accessToken
+        if (!current) throw new ApiError(expired)
+        return current
+      }
       useAuthStore.setState({ accessToken, refreshToken: nextRefreshToken })
       return accessToken
     } catch (error) {
-      if (error instanceof ApiError && error.status !== undefined) clearSession()
+      const status = error instanceof ApiError ? error.status : undefined
+      const rejected = status !== undefined && status >= 400 && status < 500 && status !== 408 && status !== 429
+      if (rejected && sameSession()) clearSession()
       throw error
     }
   })().finally(() => {
