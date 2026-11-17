@@ -41,7 +41,7 @@ export default function FilePreviewPanel({ pages, onAddFiles, onRemove, onClear,
                     aria-label={`${pageIndex + 1}번 사진 보기`}
                     aria-current={selected ? 'true' : undefined}
                     onClick={() => setSelectedId(page.id)}
-                    className={`block size-full overflow-hidden rounded-ds-small border border-solid ${selected ? 'border-action-primary' : 'border-border-default'}`}
+                    className={`block size-full overflow-hidden rounded-ds-small border border-solid ${selected ? 'border-border-strong' : 'border-border-default'}`}
                   >
                     <img src={page.url} alt="" className="block size-full object-cover" />
                   </button>
