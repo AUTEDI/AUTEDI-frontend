@@ -8,12 +8,28 @@ const multipartHeaders = () => ({ ...authHeader(), 'Content-Type': 'multipart/fo
 // 큰 사진 여러 장이나 휴대폰 회선에서도 올릴 시간을 넉넉히 준다.
 const UPLOAD_TIMEOUT_MS = 60000
 
+/** 올린 비율(0~1)을 알려주는 콜백. 전체 크기를 모르면 부르지 않는다. */
+type OnProgress = (ratio: number) => void
+
+const progressHandler = (onProgress?: OnProgress) =>
+  onProgress && (({ loaded, total }: { loaded: number; total?: number }) => {
+    if (total) onProgress(loaded / total)
+  })
+
 /** 사진들을 올려 새 학습지를 만들고 ID를 돌려준다. 올린 순서대로 페이지가 된다. */
-export async function createWorksheet(files: File[], signal?: AbortSignal): Promise<number> {
+export async function createWorksheet(files: File[], signal?: AbortSignal, onProgress?: OnProgress): Promise<number> {
   const form = new FormData()
   files.forEach((file) => form.append('file', file))
   const result = await request(
-    { method: 'post', url: '/api/v1/worksheets', data: form, headers: multipartHeaders(), timeout: UPLOAD_TIMEOUT_MS, signal },
+    {
+      method: 'post',
+      url: '/api/v1/worksheets',
+      data: form,
+      headers: multipartHeaders(),
+      timeout: UPLOAD_TIMEOUT_MS,
+      signal,
+      onUploadProgress: progressHandler(onProgress),
+    },
     '학습지를 올리지 못했어요. 다시 시도해 주세요.',
   )
   const id = (result as Record<string, unknown> | null)?.id
@@ -22,11 +38,18 @@ export async function createWorksheet(files: File[], signal?: AbortSignal): Prom
 }
 
 /** DRAFT·FAILED 상태 학습지의 원본 사진을 바꾼다. (설정은 그대로 남는다) */
-export async function replaceWorksheetFile(worksheetId: number, file: File): Promise<void> {
+export async function replaceWorksheetFile(worksheetId: number, file: File, onProgress?: OnProgress): Promise<void> {
   const form = new FormData()
   form.append('file', file)
   await request(
-    { method: 'put', url: `/api/v1/worksheets/${worksheetId}/file`, data: form, headers: multipartHeaders(), timeout: UPLOAD_TIMEOUT_MS },
+    {
+      method: 'put',
+      url: `/api/v1/worksheets/${worksheetId}/file`,
+      data: form,
+      headers: multipartHeaders(),
+      timeout: UPLOAD_TIMEOUT_MS,
+      onUploadProgress: progressHandler(onProgress),
+    },
     '사진을 올리지 못했어요. 다시 시도해 주세요.',
   )
 }

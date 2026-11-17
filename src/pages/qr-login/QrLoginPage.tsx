@@ -159,7 +159,9 @@ function PhotoUpload({
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState('')
   const [error, setError] = useState('')
-  const [uploading, setUploading] = useState(false)
+  // 올린 비율(0~1). null이면 올리는 중이 아니다.
+  const [progress, setProgress] = useState<number | null>(null)
+  const uploading = progress !== null
 
   useEffect(() => () => URL.revokeObjectURL(previewUrl), [previewUrl])
 
@@ -174,19 +176,19 @@ function PhotoUpload({
 
   async function upload() {
     if (!file || uploading) return
-    setUploading(true)
+    setProgress(0)
     setError('')
     try {
       // 첫 사진용 QR이면 새 학습지를 만들고, 사진 교체용 QR이면 그 학습지의 사진을 바꾼다.
-      if (worksheetId === null) await createWorksheet([file])
-      else await replaceWorksheetFile(worksheetId, file)
+      if (worksheetId === null) await createWorksheet([file], undefined, setProgress)
+      else await replaceWorksheetFile(worksheetId, file, setProgress)
       onDone()
     } catch (uploadError) {
       // QR을 다 썼거나(QR_006) 세션이 정리됐으면(QR_002) 새 QR이 필요하다. 나머지는 같은 QR로 다시 올릴 수 있다.
       const code = uploadError instanceof ApiError ? uploadError.code : undefined
       if (code === 'QR_006' || code === 'QR_002') onEnded(uploadError)
       else setError(uploadError instanceof Error ? uploadError.message : '사진을 올리지 못했어요. 다시 시도해 주세요.')
-      setUploading(false)
+      setProgress(null)
     }
   }
 
@@ -213,13 +215,23 @@ function PhotoUpload({
           event.target.value = ''
         }}
       />
+      {progress !== null && (
+        <div
+          role="progressbar"
+          aria-label="사진 올리는 중"
+          aria-valuenow={Math.round(progress * 100)}
+          className="h-ds-8 w-full overflow-hidden rounded-ds-full bg-icon-brand-muted"
+        >
+          <div className="h-full rounded-ds-full bg-icon-brand-strong transition-[width]" style={{ width: `${progress * 100}%` }} />
+        </div>
+      )}
       {file ? (
         <div className="flex w-full gap-ds-8">
           <ActionButton size="lg" variant="secondary" className="flex-1" disabled={uploading} onClick={() => inputRef.current?.click()}>
             다시 고르기
           </ActionButton>
           <ActionButton size="lg" className="flex-1" disabled={uploading} onClick={upload}>
-            {uploading ? '올리는 중...' : '올리기'}
+            {progress !== null ? `올리는 중... ${Math.round(progress * 100)}%` : '올리기'}
           </ActionButton>
         </div>
       ) : (
