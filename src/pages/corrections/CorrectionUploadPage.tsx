@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createGeneration } from '../../apis/generations'
 import { createWorksheet, getWorksheetFile, saveWorksheetSettings, type CorrectionArea } from '../../apis/worksheets'
 import ActionButton from '../../components/common/ActionButton'
 import { photoError } from '../../utils/photo'
@@ -7,6 +8,7 @@ import Select from '../../components/common/Select'
 import TextField from '../../components/common/TextField'
 import FileDropzone from './components/FileDropzone'
 import FilePreviewPanel, { type PreviewPage } from './components/FilePreviewPanel'
+import GenerationProgress, { type GenerationJob } from './components/GenerationProgress'
 import QrUploadModal from './components/QrUploadModal'
 import Stepper from './components/Stepper'
 
@@ -44,7 +46,28 @@ function loadLevels(): Levels {
 /** 올릴 파일과, 휴대폰이 이미 만든 학습지라면 그 ID */
 type UploadPage = PreviewPage & { file: File; worksheetId?: number }
 
-/** AI 첨삭 1~2단계: 학습지 사진을 올리고(1) 확인한다(2). 파일 정보와 첨삭 영역도 여기서 정한다. */
+/** 페이지 목록 하나를 학습지로 올리는 작업 */
+type Upload = { pages: UploadPage[]; worksheetId: Promise<number>; controller: AbortController; failed: boolean }
+
+const UPLOAD_DELAY_MS = 800
+
+// shortcut: 페이지가 바뀌어 버린 이전 업로드는 서버에 임시(DRAFT) 학습지로 남는다, 학습지 삭제 API가 생기면 지운다.
+function startUpload(pages: UploadPage[]): Upload {
+  const controller = new AbortController()
+  // 휴대폰 사진 한 장뿐이면 휴대폰이 이미 만든 학습지를 쓰고, 노트북 사진이 섞이면 전부 새 학습지로 올린다.
+  const phoneWorksheetId = pages.length === 1 ? pages[0].worksheetId : undefined
+  const worksheetId =
+    phoneWorksheetId !== undefined ? Promise.resolve(phoneWorksheetId)
+    : createWorksheet(pages.map((page) => page.file), controller.signal)
+  const upload: Upload = { pages, worksheetId, controller, failed: false }
+  // 미리 올리기 실패는 확인을 누를 때 다시 올리며 알리므로 여기서는 표시만 해 둔다.
+  worksheetId.catch(() => {
+    upload.failed = true
+  })
+  return upload
+}
+
+/** AI 첨삭 1~3단계: 학습지 사진을 올리고(1) 확인한 뒤(2) 첨삭 생성을 기다린다(3). 파일 정보와 첨삭 영역도 여기서 정한다. */
 export default function CorrectionUploadPage() {
   const [title, setTitle] = useState('')
   const [studentId, setStudentId] = useState('')
@@ -54,21 +77,42 @@ export default function CorrectionUploadPage() {
   const [uploadError, setUploadError] = useState('')
   // 확인(업로드·설정 저장) 실패. 재업로드 버튼이 파일을 새로 고르지 않고 같은 페이지로 다시 시도한다.
   const [confirmError, setConfirmError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  // 마지막으로 저장한 학습지. 페이지 목록이 그대로면 다시 올리지 않고 설정만 다시 저장한다.
-  // levels가 null이면 학습지만 올라가고 설정 저장은 아직 못 한 상태다.
-  const [savedWorksheet, setSavedWorksheet] = useState<{ id: number; pages: UploadPage[]; levels: Levels | null } | null>(null)
-  const uploadAbortRef = useRef<AbortController | null>(null)
-  const saved = savedWorksheet?.pages === pages && savedWorksheet.levels === levels
+  const [receivingPhone, setReceivingPhone] = useState(false)
+  // 확인을 누르면 바로 3단계(AI 첨삭 중) 화면으로 넘어간다. 생성 요청이 접수되기 전에는 'preparing'이다.
+  const [generating, setGenerating] = useState<GenerationJob | 'preparing' | null>(null)
+  const uploadRef = useRef<Upload | null>(null)
+  const confirmAbortRef = useRef<AbortController | null>(null)
 
-  // 화면을 떠날 때 미리보기용 주소를 해제한다.
+  // 화면을 떠날 때 미리보기용 주소를 해제하고 올리던 학습지는 멈춘다.
   const pagesRef = useRef(pages)
   useEffect(() => {
     pagesRef.current = pages
   }, [pages])
-  useEffect(() => () => pagesRef.current.forEach((page) => URL.revokeObjectURL(page.url)), [])
+  useEffect(
+    () => () => {
+      pagesRef.current.forEach((page) => URL.revokeObjectURL(page.url))
+      uploadRef.current?.controller.abort()
+      confirmAbortRef.current?.abort()
+    },
+    [],
+  )
 
-  // 이미 만든 학습지에 사진을 덧붙이는 API가 없어, 고른 사진은 확인을 누를 때 한 번에 올린다.
+  // 사진을 고르면 확인을 누르기 전부터 미리 올린다. 이미 만든 학습지에 사진을 덧붙이는 API가 없어,
+  // 페이지가 바뀌면 바뀐 목록 전체로 다시 올린다. 연달아 바뀔 때마다 올리지 않도록 잠시 기다린다.
+  useEffect(() => {
+    if (pages.length === 0) {
+      uploadRef.current?.controller.abort()
+      uploadRef.current = null
+      return
+    }
+    const timer = setTimeout(() => {
+      if (uploadRef.current?.pages === pages) return
+      uploadRef.current?.controller.abort()
+      uploadRef.current = startUpload(pages)
+    }, UPLOAD_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [pages])
+
   const addFiles = (files: File[]) => {
     // 끌어다 놓기는 파일 선택 창의 형식 제한을 거치지 않으므로 여기서 형식·용량을 다시 본다.
     setConfirmError('')
@@ -86,6 +130,8 @@ export default function CorrectionUploadPage() {
   // 휴대폰이 QR로 사진을 올리면 새 학습지가 생기고, 그 사진을 불러와 확인 단계에 붙인다.
   const addPhoneUpload = async (worksheetId: number) => {
     setQrOpen(false)
+    // 사진을 받는 동안 빈 화면 대신 올리는 중 안내를 보여준다.
+    setReceivingPhone(true)
     try {
       const file = await getWorksheetFile(worksheetId)
       setPages((prev) => [
@@ -94,34 +140,36 @@ export default function CorrectionUploadPage() {
       ])
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : '휴대폰에서 올린 사진을 불러오지 못했어요.')
+    } finally {
+      setReceivingPhone(false)
     }
   }
+  // 확인: 바로 AI 첨삭 중 화면으로 넘어가고, 미리 올리던 학습지를 기다린 뒤 설정을 저장하고 생성을 요청한다.
   const confirm = async () => {
-    if (submitting) return
     const controller = new AbortController()
-    uploadAbortRef.current = controller
-    setSubmitting(true)
+    confirmAbortRef.current = controller
     setConfirmError('')
+    setGenerating('preparing')
     try {
-      // 휴대폰 사진 한 장뿐이면 이미 만들어진 학습지를 쓰고, 노트북 사진이 섞이면 전부 새 학습지로 올린다.
-      const phoneWorksheetId = pages.length === 1 ? pages[0].worksheetId : undefined
-      const id =
-        savedWorksheet?.pages === pages ? savedWorksheet.id
-        : (phoneWorksheetId ?? (await createWorksheet(pages.map((page) => page.file), controller.signal)))
-      // 설정 저장이 실패해도 다시 확인을 누를 때 학습지를 또 만들지 않도록 먼저 기록한다.
-      setSavedWorksheet({ id, pages, levels: null })
+      let upload = uploadRef.current
+      // 아직 안 올렸거나(대기 중), 목록이 바뀌었거나, 미리 올리기가 실패했으면 지금 올린다.
+      if (!upload || upload.pages !== pages || upload.failed) {
+        upload?.controller.abort()
+        upload = startUpload(pages)
+        uploadRef.current = upload
+      }
+      const worksheetId = await upload.worksheetId
       await saveWorksheetSettings(
-        id,
+        worksheetId,
         AREAS.map(({ id: key, area }) => ({ area, level: levels[key] === 'advanced' ? 'ADVANCED' : 'STANDARD' })),
         controller.signal,
       )
-      setSavedWorksheet({ id, pages, levels })
+      const generation = await createGeneration(worksheetId, crypto.randomUUID(), controller.signal)
+      if (!controller.signal.aborted) setGenerating({ worksheetId, generation })
     } catch (error) {
-      if (!controller.signal.aborted) {
-        setConfirmError(error instanceof Error ? error.message : '학습지를 올리지 못했어요. 다시 시도해 주세요.')
-      }
-    } finally {
-      setSubmitting(false)
+      if (controller.signal.aborted) return
+      setGenerating(null)
+      setConfirmError(error instanceof Error ? error.message : '학습지를 올리지 못했어요. 다시 시도해 주세요.')
     }
   }
   const removePage = (id: string) =>
@@ -146,18 +194,24 @@ export default function CorrectionUploadPage() {
           <h1 className="text-h1 text-text-neutral-default">AI 첨삭</h1>
           <p className="text-body1-medium text-text-neutral-muted">학생의 글이 담긴 이미지나 스캔 파일을 업로드해주세요.</p>
         </div>
-        <Stepper current={reviewing ? 2 : 1} className="shrink-0" />
+        <Stepper current={generating ? 3 : reviewing ? 2 : 1} className="shrink-0" />
       </header>
 
       <div className="flex h-[652px] gap-ds-24">
-        {submitting ? (
-          <FileDropzone
+        {generating ? (
+          <GenerationProgress
+            // 생성 요청이 접수되면 새 작업을 따라가도록 다시 그린다.
+            key={generating === 'preparing' ? 'preparing' : generating.generation.id}
             className="min-w-px flex-1"
-            uploading
-            onCancelUpload={() => uploadAbortRef.current?.abort()}
-            onFilesSelected={addFiles}
-            onQrUploadClick={() => setQrOpen(true)}
+            job={generating === 'preparing' ? null : generating}
+            // shortcut: 생성 작업을 멈추는 API가 없어 화면만 2단계로 돌아가고 서버 작업은 계속된다, 취소 API가 생기면 함께 부른다.
+            onCancel={() => {
+              confirmAbortRef.current?.abort()
+              setGenerating(null)
+            }}
           />
+        ) : receivingPhone ? (
+          <FileDropzone className="min-w-px flex-1" uploading onFilesSelected={addFiles} onQrUploadClick={() => setQrOpen(true)} />
         ) : confirmError ? (
           <FileDropzone
             className="min-w-px flex-1"
@@ -181,7 +235,7 @@ export default function CorrectionUploadPage() {
           <FileDropzone className="min-w-px flex-1" onFilesSelected={addFiles} onQrUploadClick={() => setQrOpen(true)} />
         )}
 
-        <aside aria-label="첨삭 설정" className="flex w-[400px] shrink-0 flex-col gap-ds-48 px-ds-24 pt-ds-24">
+        <aside aria-label="첨삭 설정" hidden={!!generating} className="flex w-[400px] shrink-0 flex-col gap-ds-48 px-ds-24 pt-ds-24">
           <section className="flex flex-col gap-ds-24">
             <div className="flex flex-col gap-ds-4">
               <h2 className="text-h3 text-text-neutral-default">파일 설정</h2>
@@ -232,16 +286,10 @@ export default function CorrectionUploadPage() {
 
           {reviewing && (
             <div className="mt-auto flex items-center justify-end gap-ds-8">
-              {saved && (
-                <p role="status" className="mr-auto text-body2-regular text-text-neutral-muted">
-                  학습지와 첨삭 영역을 저장했어요.
-                </p>
-              )}
-              <ActionButton size="md" variant="secondary" disabled={submitting} onClick={clearPages}>
+              <ActionButton size="md" variant="secondary" onClick={clearPages}>
                 취소
               </ActionButton>
-              {/* shortcut: AI 첨삭 생성 단계가 아직 없어 학습지와 설정 저장까지만 한다, 생성 화면을 만들 때 저장 후 생성 요청으로 넘어간다. */}
-              <ActionButton size="md" disabled={submitting || saved} onClick={confirm}>
+              <ActionButton size="md" onClick={confirm}>
                 확인
               </ActionButton>
             </div>
