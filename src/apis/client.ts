@@ -98,11 +98,8 @@ export function refreshAccessToken(): Promise<string> {
       if (typeof accessToken !== 'string' || !accessToken || typeof nextRefreshToken !== 'string' || !nextRefreshToken) {
         throw new ApiError(expired, { status: 401 })
       }
-      if (!sameSession()) {
-        const current = useAuthStore.getState().accessToken
-        if (!current) throw new ApiError(expired)
-        return current
-      }
+      // 원래 요청은 이전 계정의 것이므로 새 계정 토큰으로 다시 보내지 않는다. (status가 없어 새 세션도 지우지 않는다)
+      if (!sameSession()) throw new ApiError(expired)
       useAuthStore.setState({ accessToken, refreshToken: nextRefreshToken })
       return accessToken
     } catch (error) {
