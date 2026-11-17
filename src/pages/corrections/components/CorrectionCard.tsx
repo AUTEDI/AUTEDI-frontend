@@ -70,16 +70,9 @@ export default function CorrectionCard({ correction, expanded, busy, onToggle, o
             <ActionButton size="sm" variant="secondary" disabled={busy} onClick={onDelete}>
               삭제
             </ActionButton>
-            {/* 디자인에서 확인은 강조색이 아닌 회색 버튼이라 ActionButton 대신 직접 그린다. */}
-            <button
-              type="button"
-              disabled={busy}
-              aria-pressed={correction.isApplied}
-              onClick={onConfirm}
-              className="h-[30px] rounded-ds-small bg-ds-gray-500 px-ds-16 text-label2-semibold text-text-neutral-inverse hover:bg-ds-gray-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focused disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {correction.isApplied ? '확인 취소' : '확인'}
-            </button>
+            <ActionButton size="sm" variant="neutral" disabled={busy} onClick={onConfirm}>
+              확인
+            </ActionButton>
           </div>
         </>
       )}

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { subscribeEvents } from '../../../apis/events'
 import { approveQrSession, createQrSession } from '../../../apis/qr'
-import closeIcon from '../../../assets/design-system/modal-close.svg'
 import reloadIcon from '../../../assets/design-system/reload.svg'
+import Modal from '../../../components/common/Modal'
 
 export type QrUploadModalProps = {
   open: boolean
@@ -21,42 +21,16 @@ const formatTime = (seconds: number) => `${Math.floor(seconds / 60)}:${String(se
 
 /** 휴대폰으로 사진을 올릴 수 있게 QR을 보여주는 모달. ESC·바깥 클릭·닫기 버튼으로 닫는다. */
 export default function QrUploadModal({ open, onClose, onUploaded }: QrUploadModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null)
-  // 새로고침하면 QR 세션을 처음부터 다시 만든다.
   const [attempt, setAttempt] = useState(0)
 
-  // 브라우저 기본 모달(dialog)을 써서 포커스 가두기와 ESC 닫기를 그대로 얻는다.
-  useEffect(() => {
-    const dialog = dialogRef.current
-    if (!dialog) return
-    if (open && !dialog.open) dialog.showModal()
-    if (!open && dialog.open) dialog.close()
-  }, [open])
-
   return (
-    <dialog
-      ref={dialogRef}
-      aria-labelledby="qr-upload-title"
-      onCancel={(event) => {
-        event.preventDefault()
-        onClose()
-      }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose()
-      }}
-      className="m-auto w-[520px] max-w-[calc(100vw-32px)] overflow-clip rounded-ds-large bg-background-neutral-default p-0 font-sans backdrop:bg-black/40"
-    >
+    <Modal open={open} onClose={onClose} labelledBy="qr-upload-title">
       <h2 id="qr-upload-title" className="sr-only">
         휴대폰으로 업로드
       </h2>
-      <div className="flex justify-end px-ds-24 pt-ds-24 pb-ds-12">
-        <button type="button" aria-label="닫기" onClick={onClose} className="flex size-ds-24 items-center justify-center">
-          <img src={closeIcon} alt="" width={15.1} height={15.1} />
-        </button>
-      </div>
       {/* 닫혀 있는 동안에는 QR 세션도 SSE 연결도 만들지 않는다. */}
       {open && <QrSessionView key={attempt} onRefresh={() => setAttempt((value) => value + 1)} onUploaded={onUploaded} />}
-    </dialog>
+    </Modal>
   )
 }
 
