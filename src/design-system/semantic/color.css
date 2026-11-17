@@ -38,6 +38,7 @@
   --icon-neutral-subtle: var(--color-gray-400);
   --icon-neutral-muted: var(--color-gray-500);
   --icon-neutral-inverse: var(--color-gray-white);
+  --icon-brand-muted: var(--color-blue-200);
   --icon-brand-subtle: var(--color-blue-300);
   --icon-brand-strong: var(--color-blue-500);
   --icon-accent-red: var(--color-red-500);

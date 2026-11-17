@@ -1,21 +1,26 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router'
+import { createGeneration } from '../../apis/generations'
+import { createWorksheet, getWorksheetFile, saveWorksheetSettings, type CorrectionArea } from '../../apis/worksheets'
 import ActionButton from '../../components/common/ActionButton'
+import { photoError } from '../../utils/photo'
 import SegmentedControl from '../../components/common/SegmentedControl'
 import Select from '../../components/common/Select'
 import TextField from '../../components/common/TextField'
+import CorrectionLayout from './components/CorrectionLayout'
 import FileDropzone from './components/FileDropzone'
 import FilePreviewPanel, { type PreviewPage } from './components/FilePreviewPanel'
+import GenerationProgress, { type GenerationJob } from './components/GenerationProgress'
 import QrUploadModal from './components/QrUploadModal'
-import Stepper from './components/Stepper'
 
 type Level = 'standard' | 'advanced'
 
 const AREAS = [
-  { id: 'grammar', label: '문법 및 철자' },
-  { id: 'vocabulary', label: '어휘 및 표현' },
-  { id: 'structure', label: '문장 구성' },
-  { id: 'content', label: '내용 및 요약' },
-] as const
+  { id: 'grammar', area: 'GRAMMAR_SPELLING', label: '문법 및 철자' },
+  { id: 'vocabulary', area: 'VOCABULARY_EXPRESSION', label: '어휘 및 표현' },
+  { id: 'structure', area: 'SENTENCE_STRUCTURE', label: '문장 구성' },
+  { id: 'content', area: 'CONTENT_SUMMARY', label: '내용 및 요약' },
+] as const satisfies readonly { id: string; area: CorrectionArea; label: string }[]
 
 type AreaId = (typeof AREAS)[number]['id']
 type Levels = Record<AreaId, Level>
@@ -39,35 +44,135 @@ function loadLevels(): Levels {
   }
 }
 
-// shortcut: QR 세션 API가 없어 남은 시간을 고정값으로 보여준다, QR 발급 API를 붙일 때 서버 만료 시간으로 바꾼다.
-const QR_SECONDS = 180
+/** 올릴 파일과, 휴대폰이 이미 만든 학습지라면 그 ID */
+type UploadPage = PreviewPage & { file: File; worksheetId?: number }
 
-// 서버가 페이지 이미지로 바꿀 수 있는 사진 형식
-const IMAGE_TYPES = ['image/jpeg', 'image/png']
+/** 페이지 목록 하나를 학습지로 올리는 작업 */
+type Upload = { pages: UploadPage[]; worksheetId: Promise<number>; controller: AbortController; failed: boolean }
 
-/** AI 첨삭 1~2단계: 학습지 사진을 올리고(1) 확인한다(2). 파일 정보와 첨삭 영역도 여기서 정한다. */
+const UPLOAD_DELAY_MS = 800
+
+// shortcut: 페이지가 바뀌어 버린 이전 업로드는 서버에 임시(DRAFT) 학습지로 남는다, 학습지 삭제 API가 생기면 지운다.
+function startUpload(pages: UploadPage[]): Upload {
+  const controller = new AbortController()
+  // 휴대폰 사진 한 장뿐이면 휴대폰이 이미 만든 학습지를 쓰고, 노트북 사진이 섞이면 전부 새 학습지로 올린다.
+  const phoneWorksheetId = pages.length === 1 ? pages[0].worksheetId : undefined
+  const worksheetId =
+    phoneWorksheetId !== undefined ? Promise.resolve(phoneWorksheetId)
+    : createWorksheet(pages.map((page) => page.file), controller.signal)
+  const upload: Upload = { pages, worksheetId, controller, failed: false }
+  // 미리 올리기 실패는 확인을 누를 때 다시 올리며 알리므로 여기서는 표시만 해 둔다.
+  worksheetId.catch(() => {
+    upload.failed = true
+  })
+  return upload
+}
+
+/** AI 첨삭 1~3단계: 학습지 사진을 올리고(1) 확인한 뒤(2) 첨삭 생성을 기다린다(3). 파일 정보와 첨삭 영역도 여기서 정한다. */
 export default function CorrectionUploadPage() {
+  const navigate = useNavigate()
   const [title, setTitle] = useState('')
   const [studentId, setStudentId] = useState('')
   const [levels, setLevels] = useState(loadLevels)
   const [qrOpen, setQrOpen] = useState(false)
-  const [pages, setPages] = useState<PreviewPage[]>([])
+  const [pages, setPages] = useState<UploadPage[]>([])
+  const [uploadError, setUploadError] = useState('')
+  // 확인(업로드·설정 저장) 실패. 재업로드 버튼이 파일을 새로 고르지 않고 같은 페이지로 다시 시도한다.
+  const [confirmError, setConfirmError] = useState('')
+  const [receivingPhone, setReceivingPhone] = useState(false)
+  // 확인을 누르면 바로 3단계(AI 첨삭 중) 화면으로 넘어간다. 생성 요청이 접수되기 전에는 'preparing'이다.
+  const [generating, setGenerating] = useState<GenerationJob | 'preparing' | null>(null)
+  const uploadRef = useRef<Upload | null>(null)
+  const confirmAbortRef = useRef<AbortController | null>(null)
 
-  // 화면을 떠날 때 미리보기용 주소를 해제한다.
+  // 화면을 떠날 때 미리보기용 주소를 해제하고 올리던 학습지는 멈춘다.
   const pagesRef = useRef(pages)
   useEffect(() => {
     pagesRef.current = pages
   }, [pages])
-  useEffect(() => () => pagesRef.current.forEach((page) => URL.revokeObjectURL(page.url)), [])
+  useEffect(
+    () => () => {
+      pagesRef.current.forEach((page) => URL.revokeObjectURL(page.url))
+      uploadRef.current?.controller.abort()
+      confirmAbortRef.current?.abort()
+    },
+    [],
+  )
 
-  // shortcut: 업로드 API가 없어 브라우저 안에서만 미리 본다, 업로드 API를 붙일 때 서버에 올리고 업로드 중 상태를 켠다.
+  // 사진을 고르면 확인을 누르기 전부터 미리 올린다. 이미 만든 학습지에 사진을 덧붙이는 API가 없어,
+  // 페이지가 바뀌면 바뀐 목록 전체로 다시 올린다. 연달아 바뀔 때마다 올리지 않도록 잠시 기다린다.
+  useEffect(() => {
+    if (pages.length === 0) {
+      uploadRef.current?.controller.abort()
+      uploadRef.current = null
+      return
+    }
+    const timer = setTimeout(() => {
+      if (uploadRef.current?.pages === pages) return
+      uploadRef.current?.controller.abort()
+      uploadRef.current = startUpload(pages)
+    }, UPLOAD_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [pages])
+
   const addFiles = (files: File[]) => {
-    // 끌어다 놓기는 파일 선택 창의 형식 제한을 거치지 않으므로 여기서 사진만 남긴다.
-    const images = files.filter((file) => IMAGE_TYPES.includes(file.type))
+    // 끌어다 놓기는 파일 선택 창의 형식 제한을 거치지 않으므로 여기서 형식·용량을 다시 본다.
+    setConfirmError('')
+    const error = files.map(photoError).find(Boolean)
+    if (error) {
+      setUploadError(error)
+      return
+    }
+    setUploadError('')
     setPages((prev) => [
       ...prev,
-      ...images.map((file) => ({ id: crypto.randomUUID(), name: file.name, url: URL.createObjectURL(file) })),
+      ...files.map((file) => ({ id: crypto.randomUUID(), name: file.name, url: URL.createObjectURL(file), file })),
     ])
+  }
+  // 휴대폰이 QR로 사진을 올리면 새 학습지가 생기고, 그 사진을 불러와 확인 단계에 붙인다.
+  const addPhoneUpload = async (worksheetId: number) => {
+    setQrOpen(false)
+    // 사진을 받는 동안 빈 화면 대신 올리는 중 안내를 보여준다.
+    setReceivingPhone(true)
+    try {
+      const file = await getWorksheetFile(worksheetId)
+      setPages((prev) => [
+        ...prev,
+        { id: `worksheet-${worksheetId}`, name: '휴대폰 사진', url: URL.createObjectURL(file), file, worksheetId },
+      ])
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : '휴대폰에서 올린 사진을 불러오지 못했어요.')
+    } finally {
+      setReceivingPhone(false)
+    }
+  }
+  // 확인: 바로 AI 첨삭 중 화면으로 넘어가고, 미리 올리던 학습지를 기다린 뒤 설정을 저장하고 생성을 요청한다.
+  const confirm = async () => {
+    const controller = new AbortController()
+    confirmAbortRef.current = controller
+    setConfirmError('')
+    setGenerating('preparing')
+    try {
+      let upload = uploadRef.current
+      // 아직 안 올렸거나(대기 중), 목록이 바뀌었거나, 미리 올리기가 실패했으면 지금 올린다.
+      if (!upload || upload.pages !== pages || upload.failed) {
+        upload?.controller.abort()
+        upload = startUpload(pages)
+        uploadRef.current = upload
+      }
+      const worksheetId = await upload.worksheetId
+      await saveWorksheetSettings(
+        worksheetId,
+        AREAS.map(({ id: key, area }) => ({ area, level: levels[key] === 'advanced' ? 'ADVANCED' : 'STANDARD' })),
+        controller.signal,
+      )
+      const generation = await createGeneration(worksheetId, crypto.randomUUID(), controller.signal)
+      if (!controller.signal.aborted) setGenerating({ worksheetId, generation })
+    } catch (error) {
+      if (controller.signal.aborted) return
+      setGenerating(null)
+      setConfirmError(error instanceof Error ? error.message : '학습지를 올리지 못했어요. 다시 시도해 주세요.')
+    }
   }
   const removePage = (id: string) =>
     setPages((prev) => {
@@ -75,31 +180,57 @@ export default function CorrectionUploadPage() {
       if (page) URL.revokeObjectURL(page.url)
       return prev.filter((item) => item.id !== id)
     })
-  const clearPages = () =>
+  const clearPages = () => {
+    setConfirmError('')
     setPages((prev) => {
       prev.forEach((page) => URL.revokeObjectURL(page.url))
       return []
     })
+  }
   const reviewing = pages.length > 0
 
   return (
-    <div className="flex min-h-full w-full min-w-0 flex-col gap-ds-24 py-ds-40 pr-[120px] pl-ds-40 font-sans">
-      <header className="flex items-center justify-between gap-ds-24">
-        <div className="flex flex-col gap-ds-16">
-          <h1 className="text-h1 text-text-neutral-default">AI 첨삭</h1>
-          <p className="text-body1-medium text-text-neutral-muted">학생의 글이 담긴 이미지나 스캔 파일을 업로드해주세요.</p>
-        </div>
-        <Stepper current={reviewing ? 2 : 1} className="shrink-0" />
-      </header>
-
+    <CorrectionLayout step={generating ? 3 : reviewing ? 2 : 1}>
       <div className="flex h-[652px] gap-ds-24">
-        {reviewing ? (
+        {generating ? (
+          <GenerationProgress
+            // 생성 요청이 접수되면 새 작업을 따라가도록 다시 그린다.
+            key={generating === 'preparing' ? 'preparing' : generating.generation.id}
+            className="min-w-px flex-1"
+            job={generating === 'preparing' ? null : generating}
+            // shortcut: 생성 작업을 멈추는 API가 없어 화면만 2단계로 돌아가고 서버 작업은 계속된다, 취소 API가 생기면 함께 부른다.
+            onCancel={() => {
+              confirmAbortRef.current?.abort()
+              setGenerating(null)
+            }}
+            onSucceeded={(worksheetId) => navigate(`/corrections/review/${worksheetId}`)}
+          />
+        ) : receivingPhone ? (
+          <FileDropzone className="min-w-px flex-1" uploading onFilesSelected={addFiles} onQrUploadClick={() => setQrOpen(true)} />
+        ) : confirmError ? (
+          <FileDropzone
+            className="min-w-px flex-1"
+            error={confirmError}
+            onDismissError={() => setConfirmError('')}
+            onRetry={confirm}
+            onFilesSelected={addFiles}
+            onQrUploadClick={() => setQrOpen(true)}
+          />
+        ) : uploadError ? (
+          <FileDropzone
+            className="min-w-px flex-1"
+            error={uploadError}
+            onDismissError={() => setUploadError('')}
+            onFilesSelected={addFiles}
+            onQrUploadClick={() => setQrOpen(true)}
+          />
+        ) : reviewing ? (
           <FilePreviewPanel className="min-w-px flex-1" pages={pages} onAddFiles={addFiles} onRemove={removePage} onClear={clearPages} />
         ) : (
           <FileDropzone className="min-w-px flex-1" onFilesSelected={addFiles} onQrUploadClick={() => setQrOpen(true)} />
         )}
 
-        <aside aria-label="첨삭 설정" className="flex w-[400px] shrink-0 flex-col gap-ds-48 px-ds-24 pt-ds-24">
+        <aside aria-label="첨삭 설정" hidden={!!generating} className="flex w-[400px] shrink-0 flex-col gap-ds-48 px-ds-24 pt-ds-24">
           <section className="flex flex-col gap-ds-24">
             <div className="flex flex-col gap-ds-4">
               <h2 className="text-h3 text-text-neutral-default">파일 설정</h2>
@@ -108,6 +239,7 @@ export default function CorrectionUploadPage() {
             <div className="flex flex-col gap-ds-16">
               <div className="flex items-center gap-ds-8">
                 <span aria-hidden="true" className="w-[100px] text-label2-semibold text-text-neutral-muted">파일 제목</span>
+                {/* shortcut: 학습지 API에 제목 필드가 없어 화면에만 둔다, 백엔드에 필드가 생기면 업로드 때 함께 보낸다. */}
                 <TextField label="파일 제목" value={title} onValueChange={setTitle} />
               </div>
               <div className="flex items-center gap-ds-8">
@@ -148,16 +280,11 @@ export default function CorrectionUploadPage() {
           </section>
 
           {reviewing && (
-            <div className="mt-auto flex justify-end gap-ds-8">
-              <button
-                type="button"
-                onClick={clearPages}
-                className="rounded-ds-small border border-solid border-border-default bg-background-neutral-default px-ds-24 py-ds-8 text-label1-semibold text-text-neutral-default hover:bg-background-neutral-weak focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focused"
-              >
+            <div className="mt-auto flex items-center justify-end gap-ds-8">
+              <ActionButton size="md" variant="secondary" onClick={clearPages}>
                 취소
-              </button>
-              {/* shortcut: AI 첨삭 생성 단계가 아직 없어 누르면 아무 일도 없다, 생성 화면을 만들 때 연결한다. */}
-              <ActionButton size="md">
+              </ActionButton>
+              <ActionButton size="md" onClick={confirm}>
                 확인
               </ActionButton>
             </div>
@@ -165,7 +292,7 @@ export default function CorrectionUploadPage() {
         </aside>
       </div>
 
-      <QrUploadModal open={qrOpen} onClose={() => setQrOpen(false)} remainingSeconds={QR_SECONDS} onRefresh={() => {}} />
-    </div>
+      <QrUploadModal open={qrOpen} onClose={() => setQrOpen(false)} onUploaded={addPhoneUpload} />
+    </CorrectionLayout>
   )
 }

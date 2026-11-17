@@ -4,6 +4,8 @@ import { buttonBaseClasses, buttonBorderClasses, buttonStateClasses, type Button
 export type ActionButtonProps = ComponentPropsWithRef<'button'> & {
   size?: 'sm' | 'md' | 'lg'
   state?: ButtonState
+  /** primary는 파란 확인 버튼, secondary는 흰 바탕의 취소·삭제 버튼, neutral은 카드 안의 회색 확인·저장 버튼 */
+  variant?: 'primary' | 'secondary' | 'neutral'
 }
 
 const sizeClasses = {
@@ -12,9 +14,25 @@ const sizeClasses = {
   lg: 'h-ds-48 px-ds-24 py-ds-12 text-label1-semibold',
 } as const
 
+const secondaryClasses = {
+  primary:
+    'border-border-default bg-background-neutral-default text-text-neutral-default hover:bg-background-neutral-weak active:bg-background-neutral-subtle',
+  hover: 'border-border-default bg-background-neutral-weak text-text-neutral-default active:bg-background-neutral-subtle',
+  pressed: 'border-border-default bg-background-neutral-subtle text-text-neutral-default',
+  disabled: `${buttonStateClasses.disabled} ${buttonBorderClasses.disabled}`,
+} as const satisfies Record<ButtonState, string>
+
+const neutralClasses = {
+  primary: 'border-ds-gray-500 bg-ds-gray-500 text-text-neutral-inverse hover:border-ds-gray-600 hover:bg-ds-gray-600 active:bg-ds-gray-700',
+  hover: 'border-ds-gray-600 bg-ds-gray-600 text-text-neutral-inverse active:bg-ds-gray-700',
+  pressed: 'border-ds-gray-700 bg-ds-gray-700 text-text-neutral-inverse',
+  disabled: secondaryClasses.disabled,
+} as const satisfies Record<ButtonState, string>
+
 export default function ActionButton({
   size = 'sm',
   state = 'primary',
+  variant = 'primary',
   type = 'button',
   disabled = false,
   className = '',
@@ -31,11 +49,12 @@ export default function ActionButton({
       disabled={isDisabled}
       className={[
         buttonBaseClasses,
-        'border border-solid',
+        'rounded-ds-small border border-solid',
         isDisabled ? 'cursor-not-allowed' : 'cursor-pointer',
         sizeClasses[size],
-        buttonStateClasses[resolvedState],
-        buttonBorderClasses[resolvedState],
+        variant === 'secondary' ? secondaryClasses[resolvedState]
+        : variant === 'neutral' ? neutralClasses[resolvedState]
+        : `${buttonStateClasses[resolvedState]} ${buttonBorderClasses[resolvedState]}`,
         className,
       ].join(' ')}
     >

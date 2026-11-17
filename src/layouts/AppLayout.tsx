@@ -38,11 +38,12 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="flex h-dvh overflow-hidden">
+    // relative: 화면 읽기용 숨김 글자(sr-only, absolute)가 이 틀 밖으로 나가 문서 전체를 길게 만들지 않게 가둔다.
+    <div className="relative flex h-dvh overflow-hidden">
       <Sidebar onLogout={handleLogout} isLoggingOut={isLoggingOut} logoutError={logoutError} />
       <div className="flex min-w-0 flex-1 flex-col">
         <GNB academyName={user?.academyName ?? ''} userName={user?.name ?? ''} />
-        <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto">
+        <main ref={mainRef} className="relative min-h-0 flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>

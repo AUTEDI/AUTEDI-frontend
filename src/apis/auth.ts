@@ -1,8 +1,8 @@
 import axios from 'axios'
 import type { AuthSession, LoginCredentials, LoginResponse, LogoutResponse } from '../types/auth'
-import { apiClient } from './client'
+import { apiClient, serverMessage } from './client'
 
-function isAuthSession(value: unknown): value is AuthSession {
+export function isAuthSession(value: unknown): value is AuthSession {
   if (typeof value !== 'object' || value === null) return false
   const session = value as Record<string, unknown>
   if (typeof session.accessToken !== 'string' || !session.accessToken
@@ -17,12 +17,6 @@ function isAuthSession(value: unknown): value is AuthSession {
     && typeof user.academyId === 'number'
     && typeof user.academyName === 'string'
     && typeof user.subscriptionStatus === 'string'
-}
-
-function serverMessage(value: unknown): string | undefined {
-  if (typeof value !== 'object' || value === null) return undefined
-  const message = (value as Record<string, unknown>).message
-  return typeof message === 'string' && message.trim() ? message : undefined
 }
 
 export async function login(credentials: LoginCredentials): Promise<AuthSession> {

@@ -1,9 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router'
 import AppLayout from './layouts/AppLayout'
+import CorrectionReviewPage from './pages/corrections/CorrectionReviewPage'
 import CorrectionUploadPage from './pages/corrections/CorrectionUploadPage'
 import HomePage from './pages/home/HomePage'
 import CorrectionHistoryPage from './pages/history/CorrectionHistoryPage'
 import LoginPage from './pages/login/LoginPage'
+import QrLoginPage from './pages/qr-login/QrLoginPage'
 import { useAuthStore } from './stores/useAuthStore'
 
 function App() {
@@ -13,8 +15,11 @@ function App() {
     <Routes>
       <Route path="/" element={isAuthenticated ? <Navigate to="/main" replace /> : <LoginPage />} />
       <Route path="login" element={<Navigate to="/" replace />} />
+      {/* 휴대폰이 QR을 찍고 들어오는 화면. 로그인 전에도 열려야 한다. */}
+      <Route path="qr-login" element={<QrLoginPage />} />
       <Route element={isAuthenticated ? <AppLayout /> : <Navigate to="/" replace />}>
         <Route path="main" element={<HomePage />} />
+        <Route path="corrections/review/:worksheetId" element={<CorrectionReviewPage />} />
         <Route path="corrections/*" element={<CorrectionUploadPage />} />
         <Route path="correction-history" element={<CorrectionHistoryPage />} />
         {/* 페이지 구현 후 null을 해당 페이지 컴포넌트로 교체합니다. */}

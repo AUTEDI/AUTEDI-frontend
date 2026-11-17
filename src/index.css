@@ -22,4 +22,12 @@
   body {
     font-family: var(--font-family);
   }
+
+  /* 브라우저 기본 스크롤바(html)만 남기고 화면 안 스크롤 영역의 스크롤바는 숨긴다. 스크롤은 그대로 된다. */
+  body * {
+    scrollbar-width: none;
+  }
+  body *::-webkit-scrollbar {
+    display: none;
+  }
 }

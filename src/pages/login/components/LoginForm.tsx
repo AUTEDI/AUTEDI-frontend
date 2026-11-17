@@ -143,7 +143,7 @@ export default function LoginForm() {
         </div>
 
         <div className="flex flex-col gap-ds-12">
-          <ActionButton type="submit" size="lg" disabled={isSubmitting} className="w-full rounded-ds-small">
+          <ActionButton type="submit" size="lg" disabled={isSubmitting} className="w-full">
             {isSubmitting ? '로그인 중...' : '로그인'}
           </ActionButton>
           {submitError && <p role="alert" className="text-center text-caption text-text-accent-red">{submitError}</p>}

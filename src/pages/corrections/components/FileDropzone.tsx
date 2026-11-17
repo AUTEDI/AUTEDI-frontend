@@ -1,5 +1,6 @@
 import { useRef, useState, type DragEvent } from 'react'
 import uploadIcon from '../../../assets/design-system/upload.svg'
+import ActionButton from '../../../components/common/ActionButton'
 
 export type FileDropzoneProps = {
   /** 고르거나 끌어다 놓은 파일. 형식·크기 검사는 받는 쪽에서 한다(끌어다 놓기는 accept를 거치지 않는다). */
@@ -8,8 +9,16 @@ export type FileDropzoneProps = {
   /** 올리는 중이면 선택·끌어다 놓기를 막고 진행 안내와 취소 버튼을 보여준다. */
   uploading?: boolean
   onCancelUpload?: () => void
+  /** 업로드 실패 안내 문구. 있으면 실패 화면과 취소·재업로드 버튼을 보여준다. */
+  error?: string
+  onDismissError?: () => void
+  /** 있으면 재업로드 버튼이 파일을 다시 고르는 대신 이 동작으로 다시 시도한다. */
+  onRetry?: () => void
   className?: string
 }
+
+const failureButton =
+  'rounded-ds-small border border-solid border-border-default bg-background-neutral-default px-ds-24 py-[6px] text-label2-semibold text-text-neutral-default hover:bg-background-neutral-weak focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focused'
 
 // 서버가 페이지 이미지로 바꿀 수 있는 사진 형식만 고르게 한다.
 const ACCEPT = 'image/jpeg,image/png'
@@ -20,6 +29,9 @@ export default function FileDropzone({
   onQrUploadClick,
   uploading = false,
   onCancelUpload,
+  error,
+  onDismissError,
+  onRetry,
   className = '',
 }: FileDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -27,18 +39,69 @@ export default function FileDropzone({
 
   const openPicker = () => inputRef.current?.click()
 
-  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault()
-    setDragging(false)
-    const files = Array.from(event.dataTransfer.files)
-    if (files.length) onFilesSelected(files)
+  const dropTarget = {
+    onDragOver: (event: DragEvent<HTMLDivElement>) => {
+      event.preventDefault()
+      setDragging(true)
+    },
+    onDragLeave: (event: DragEvent<HTMLDivElement>) => {
+      // 안쪽 요소로 옮겨갈 때 생기는 dragleave는 무시한다.
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false)
+    },
+    onDrop: (event: DragEvent<HTMLDivElement>) => {
+      event.preventDefault()
+      setDragging(false)
+      const files = Array.from(event.dataTransfer.files)
+      if (files.length) onFilesSelected(files)
+    },
   }
+  const dragOutline = dragging ? 'outline-2 outline-offset-[-2px] outline-dashed outline-border-focused' : ''
 
   const iconBox = (
     <span className="flex size-[64px] items-center justify-center rounded-ds-medium bg-[var(--color-blue-100)]">
       <img src={uploadIcon} alt="" width={48} height={48} />
     </span>
   )
+
+  const fileInput = (
+    <input
+      ref={inputRef}
+      type="file"
+      accept={ACCEPT}
+      multiple
+      hidden
+      onChange={(event) => {
+        const files = Array.from(event.target.files ?? [])
+        // 같은 파일을 다시 골라도 change가 일어나게 비운다.
+        event.target.value = ''
+        if (files.length) onFilesSelected(files)
+      }}
+    />
+  )
+
+  if (error) {
+    return (
+      <div
+        role="alert"
+        {...dropTarget}
+        className={`relative flex flex-col items-center justify-center overflow-clip rounded-ds-large bg-background-neutral-weak p-[36px] font-sans ${dragOutline} ${className}`}
+      >
+        {fileInput}
+        <div className="flex flex-col items-center gap-ds-8 text-center">
+          <p className="text-h3 text-text-neutral-default">이미지 업로드에 실패했어요</p>
+          <p className="text-body2-regular text-text-neutral-muted">{error}</p>
+        </div>
+        <div className="absolute inset-x-0 bottom-[36px] flex justify-center gap-[99px]">
+          <button type="button" onClick={onDismissError} className={failureButton}>
+            취소
+          </button>
+          <button type="button" onClick={onRetry ?? openPicker} className={failureButton}>
+            재업로드 하기
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   if (uploading) {
     return (
@@ -53,13 +116,9 @@ export default function FileDropzone({
             <p className="text-body2-regular text-text-neutral-muted">잠시만 기다려 주세요.</p>
           </div>
           {onCancelUpload && (
-            <button
-              type="button"
-              onClick={onCancelUpload}
-              className="rounded-ds-small border border-solid border-border-default bg-background-neutral-default px-ds-24 py-ds-8 text-label1-semibold text-text-neutral-default hover:bg-background-neutral-weak focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focused"
-            >
+            <ActionButton size="md" variant="secondary" onClick={onCancelUpload}>
               취소
-            </button>
+            </ActionButton>
           )}
         </div>
       </div>
@@ -69,32 +128,10 @@ export default function FileDropzone({
   return (
     <div
       onClick={openPicker}
-      onDragOver={(event) => {
-        event.preventDefault()
-        setDragging(true)
-      }}
-      onDragLeave={(event) => {
-        // 안쪽 요소로 옮겨갈 때 생기는 dragleave는 무시한다.
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false)
-      }}
-      onDrop={handleDrop}
-      className={`flex cursor-pointer flex-col items-center justify-center gap-ds-48 overflow-clip rounded-ds-large bg-background-brand-weak px-ds-24 py-[36px] font-sans ${
-        dragging ? 'outline-2 outline-offset-[-2px] outline-dashed outline-border-focused' : ''
-      } ${className}`}
+      {...dropTarget}
+      className={`flex cursor-pointer flex-col items-center justify-center gap-ds-48 overflow-clip rounded-ds-large bg-background-brand-weak px-ds-24 py-[36px] font-sans ${dragOutline} ${className}`}
     >
-      <input
-        ref={inputRef}
-        type="file"
-        accept={ACCEPT}
-        multiple
-        hidden
-        onChange={(event) => {
-          const files = Array.from(event.target.files ?? [])
-          // 같은 파일을 다시 골라도 change가 일어나게 비운다.
-          event.target.value = ''
-          if (files.length) onFilesSelected(files)
-        }}
-      />
+      {fileInput}
       <button
         type="button"
         onClick={(event) => {
