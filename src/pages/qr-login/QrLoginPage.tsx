@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
 import { ApiError } from '../../apis/client'
 import { getQrStatus, issueQrToken, linkQr, scanQr, type QrLogin } from '../../apis/qr'
-import { uploadWorksheetPhoto } from '../../apis/worksheets'
+import { createWorksheet, replaceWorksheetFile } from '../../apis/worksheets'
 import ActionButton from '../../components/common/ActionButton'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { PHOTO_TYPES, photoError } from '../../utils/photo'
@@ -29,14 +29,18 @@ class FlowEnd extends Error {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-/** 429면 서버가 알려준 시간만큼 기다렸다가 다시 부른다. */
-async function retryOn429<T>(call: () => Promise<T>): Promise<T> {
+/** 화면을 떠나 더 진행하지 않을 때 던진다. 받는 쪽은 화면이 없으므로 결과를 버린다. */
+const left = () => new FlowEnd('', '')
+
+/** 429면 서버가 알려준 시간만큼 기다렸다가 다시 부른다. 그사이 화면을 떠났으면 멈춘다. */
+async function retryOn429<T>(call: () => Promise<T>, isActive: () => boolean): Promise<T> {
   for (;;) {
     try {
       return await call()
     } catch (error) {
       if (!(error instanceof ApiError && error.status === 429)) throw error
       await sleep((error.retryAfter ?? 2) * 1000)
+      if (!isActive()) throw left()
     }
   }
 }
@@ -54,31 +58,37 @@ async function connect(qrToken: string, isActive: () => boolean, onWaiting: () =
   const savedToken = useAuthStore.getState().accessToken
   if (savedToken) {
     try {
-      return await retryOn429(() => linkQr(qrToken, savedToken))
+      return await retryOn429(() => linkQr(qrToken, savedToken), isActive)
     } catch (error) {
-      // 다른 계정으로 로그인돼 있거나(QR_005) 토큰이 만료됐으면(401) 승인 흐름으로 넘어간다.
-      // shortcut: refresh API가 아직 없어 401이면 바로 승인 흐름으로 간다, refresh API가 생기면 재발급 후 link를 한 번 더 시도한다.
+      // 다른 계정으로 로그인돼 있거나(QR_005) 토큰 재발급까지 실패했으면(401) 승인 흐름으로 넘어간다.
       if (!(error instanceof ApiError && (error.status === 401 || error.code === 'QR_005'))) throw error
     }
   }
 
-  await retryOn429(() => scanQr(qrToken))
+  await retryOn429(() => scanQr(qrToken), isActive)
   onWaiting()
-  while (isActive()) {
+  for (;;) {
     await sleep(POLL_MS)
-    const status = await retryOn429(() => getQrStatus(qrToken))
-    if (status === 'APPROVED') return retryOn429(() => issueQrToken(qrToken))
+    if (!isActive()) throw left()
+    const status = await retryOn429(() => getQrStatus(qrToken), isActive)
+    // 토큰은 QR 하나당 한 번만 받을 수 있으므로, 화면을 떠났으면 받아서 버리지 않는다.
+    if (!isActive()) throw left()
+    if (status === 'APPROVED') return retryOn429(() => issueQrToken(qrToken), isActive)
     if (status === 'REJECTED') throw new FlowEnd('요청이 거절되었어요', `노트북에서 로그인 요청을 거절했어요. ${REMAKE}`)
     if (status === 'EXPIRED') throw new FlowEnd('QR이 만료되었어요', REMAKE)
     if (status === 'COMPLETED') throw new FlowEnd('이미 사용한 QR이에요', REMAKE)
   }
-  throw new FlowEnd('', '')
 }
 
 /** 휴대폰: QR로 노트북과 같은 계정에 로그인하고 학습지 사진 한 장을 올리는 화면 */
 export default function QrLoginPage() {
   const [params] = useSearchParams()
   const qrToken = params.get('token') ?? ''
+  // QR 토큰이 바뀌면 화면과 진행 상태를 처음부터 다시 만든다.
+  return <QrLogin key={qrToken} qrToken={qrToken} />
+}
+
+function QrLogin({ qrToken }: { qrToken: string }) {
   const [screen, setScreen] = useState<Screen>(
     qrToken ? { kind: 'connecting' } : { kind: 'ended', title: 'QR 링크가 올바르지 않아요', message: REMAKE },
   )
@@ -167,7 +177,9 @@ function PhotoUpload({
     setUploading(true)
     setError('')
     try {
-      await uploadWorksheetPhoto(file, worksheetId)
+      // 첫 사진용 QR이면 새 학습지를 만들고, 사진 교체용 QR이면 그 학습지의 사진을 바꾼다.
+      if (worksheetId === null) await createWorksheet([file])
+      else await replaceWorksheetFile(worksheetId, file)
       onDone()
     } catch (uploadError) {
       // QR을 다 썼거나(QR_006) 세션이 정리됐으면(QR_002) 새 QR이 필요하다. 나머지는 같은 QR로 다시 올릴 수 있다.
