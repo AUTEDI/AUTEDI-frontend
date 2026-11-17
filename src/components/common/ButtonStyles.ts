@@ -1,7 +1,7 @@
 export type ButtonState = 'primary' | 'hover' | 'pressed' | 'disabled'
 
 export const buttonBaseClasses =
-  'inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-ds-medium font-sans focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focused'
+  'inline-flex shrink-0 items-center justify-center whitespace-nowrap font-sans focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focused'
 
 export const buttonStateClasses = {
   primary:

@@ -22,7 +22,7 @@ export default function CTAButton({
   const resolvedState = isDisabled ? 'disabled' : state
   const classes = [
     buttonBaseClasses,
-    'px-ds-24 py-ds-12 text-label1-semibold',
+    'rounded-ds-medium px-ds-24 py-ds-12 text-label1-semibold',
     buttonStateClasses[resolvedState],
     isDisabled ? `cursor-not-allowed border border-solid ${buttonBorderClasses.disabled}` : 'cursor-pointer',
     className,

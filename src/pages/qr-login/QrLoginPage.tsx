@@ -215,14 +215,9 @@ function PhotoUpload({
       />
       {file ? (
         <div className="flex w-full gap-ds-8">
-          <button
-            type="button"
-            disabled={uploading}
-            onClick={() => inputRef.current?.click()}
-            className="h-ds-48 flex-1 rounded-ds-medium border border-solid border-border-default bg-background-neutral-default text-label1-semibold text-text-neutral-default disabled:cursor-not-allowed"
-          >
+          <ActionButton size="lg" variant="secondary" className="flex-1" disabled={uploading} onClick={() => inputRef.current?.click()}>
             다시 고르기
-          </button>
+          </ActionButton>
           <ActionButton size="lg" className="flex-1" disabled={uploading} onClick={upload}>
             {uploading ? '올리는 중...' : '올리기'}
           </ActionButton>

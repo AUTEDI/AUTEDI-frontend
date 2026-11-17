@@ -237,14 +237,9 @@ export default function CorrectionUploadPage() {
                   학습지와 첨삭 영역을 저장했어요.
                 </p>
               )}
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={clearPages}
-                className="rounded-ds-small border border-solid border-border-default bg-background-neutral-default px-ds-24 py-ds-8 text-label1-semibold text-text-neutral-default hover:bg-background-neutral-weak focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focused"
-              >
+              <ActionButton size="md" variant="secondary" disabled={submitting} onClick={clearPages}>
                 취소
-              </button>
+              </ActionButton>
               {/* shortcut: AI 첨삭 생성 단계가 아직 없어 학습지와 설정 저장까지만 한다, 생성 화면을 만들 때 저장 후 생성 요청으로 넘어간다. */}
               <ActionButton size="md" disabled={submitting || saved} onClick={confirm}>
                 확인
