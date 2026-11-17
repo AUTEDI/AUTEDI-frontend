@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router'
 import AppLayout from './layouts/AppLayout'
+import CorrectionReviewPage from './pages/corrections/CorrectionReviewPage'
 import CorrectionUploadPage from './pages/corrections/CorrectionUploadPage'
 import HomePage from './pages/home/HomePage'
 import CorrectionHistoryPage from './pages/history/CorrectionHistoryPage'
@@ -18,6 +19,7 @@ function App() {
       <Route path="qr-login" element={<QrLoginPage />} />
       <Route element={isAuthenticated ? <AppLayout /> : <Navigate to="/" replace />}>
         <Route path="main" element={<HomePage />} />
+        <Route path="corrections/review/:worksheetId" element={<CorrectionReviewPage />} />
         <Route path="corrections/*" element={<CorrectionUploadPage />} />
         <Route path="correction-history" element={<CorrectionHistoryPage />} />
         {/* 페이지 구현 후 null을 해당 페이지 컴포넌트로 교체합니다. */}

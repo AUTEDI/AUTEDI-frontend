@@ -1,5 +1,6 @@
 import { useRef, useState, type DragEvent } from 'react'
 import uploadIcon from '../../../assets/design-system/upload.svg'
+import ActionButton from '../../../components/common/ActionButton'
 
 export type FileDropzoneProps = {
   /** 고르거나 끌어다 놓은 파일. 형식·크기 검사는 받는 쪽에서 한다(끌어다 놓기는 accept를 거치지 않는다). */
@@ -83,7 +84,7 @@ export default function FileDropzone({
       <div
         role="alert"
         {...dropTarget}
-        className={`relative flex flex-col items-center justify-center overflow-clip rounded-ds-large bg-background-brand-weak p-[36px] font-sans ${dragOutline} ${className}`}
+        className={`relative flex flex-col items-center justify-center overflow-clip rounded-ds-large bg-background-neutral-weak p-[36px] font-sans ${dragOutline} ${className}`}
       >
         {fileInput}
         <div className="flex flex-col items-center gap-ds-8 text-center">
@@ -115,13 +116,9 @@ export default function FileDropzone({
             <p className="text-body2-regular text-text-neutral-muted">잠시만 기다려 주세요.</p>
           </div>
           {onCancelUpload && (
-            <button
-              type="button"
-              onClick={onCancelUpload}
-              className="rounded-ds-small border border-solid border-border-default bg-background-neutral-default px-ds-24 py-ds-8 text-label1-semibold text-text-neutral-default hover:bg-background-neutral-weak focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focused"
-            >
+            <ActionButton size="md" variant="secondary" onClick={onCancelUpload}>
               취소
-            </button>
+            </ActionButton>
           )}
         </div>
       </div>
