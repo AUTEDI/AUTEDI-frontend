@@ -1,17 +1,35 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router'
-import { deleteCorrection, getPageImageUrl, getReview, setCorrectionApplied, type Correction, type Review } from '../../apis/review'
+import { useNavigate, useParams } from 'react-router'
+import {
+  createComment,
+  deleteComment,
+  deleteCorrection,
+  getPageImageUrl,
+  getReview,
+  moveCorrection,
+  setCorrectionApplied,
+  type Correction,
+  type Region,
+  type Review,
+  type TeacherComment,
+} from '../../apis/review'
 import correctionIcon from '../../assets/design-system/icon-correction.svg'
 import suggestionIcon from '../../assets/design-system/icon-suggestion.svg'
+import ActionButton from '../../components/common/ActionButton'
+import CompleteModal from './components/CompleteModal'
 import CorrectionCard from './components/CorrectionCard'
 import CorrectionLayout from './components/CorrectionLayout'
-import ReviewCanvas from './components/ReviewCanvas'
+import type { CommentKind, CommentTool } from './components/commentTools'
+import ManualCommentPanel from './components/ManualCommentPanel'
+import ReviewCanvas, { type NotePosition } from './components/ReviewCanvas'
 
 const errorMessage = (error: unknown, fallback: string) => (error instanceof Error ? error.message : fallback)
 
 /** AI 첨삭 4단계: 생성된 첨삭을 학습지 위에서 확인하고 고른다. */
 export default function CorrectionReviewPage() {
   const worksheetId = Number(useParams().worksheetId)
+  const navigate = useNavigate()
+  const [completeOpen, setCompleteOpen] = useState(false)
   const [review, setReview] = useState<Review | null>(null)
   const [loadError, setLoadError] = useState('')
   const [imageUrls, setImageUrls] = useState<Record<number, string>>({})
@@ -19,6 +37,18 @@ export default function CorrectionReviewPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [busyId, setBusyId] = useState<number | null>(null)
   const [actionError, setActionError] = useState('')
+  // 수기 첨삭: 고른 도구·유형, 사진에서 끌어 고른 영역, 저장된 목록에서 고른 코멘트
+  const [tab, setTab] = useState<'ai' | 'manual'>('ai')
+  // null이면 손 모드(표시 옮기기·확대 시 사진 옮기기)
+  const [tool, setTool] = useState<CommentTool | null>(null)
+  const [kind, setKind] = useState<CommentKind>('RED')
+  // 골라 둔 영역과 그때 쓴 도구. 도구를 바꾸면 미리보기 모양도 바뀐다.
+  const [draft, setDraft] = useState<{ region: Region; tool: CommentTool } | null>(null)
+  const [selectedCommentId, setSelectedCommentId] = useState<number | null>(null)
+  const [commentBusy, setCommentBusy] = useState(false)
+  const [commentError, setCommentError] = useState('')
+  // shortcut: 메모 자리는 저장할 API 필드가 없어 이 화면에서만 기억한다, 백엔드에 필드가 생기면 함께 저장한다.
+  const [notePositions, setNotePositions] = useState<Record<string, NotePosition>>({})
 
   const validId = Number.isInteger(worksheetId)
 
@@ -75,13 +105,13 @@ export default function CorrectionReviewPage() {
     }
   }
 
+  // 확인: 학생 리포트에 반영하고 카드를 접는다. 디자인에 반영 취소가 없어 이미 확인한 카드는 접기만 한다.
   const confirm = (correction: Correction) =>
     run(
       correction,
       async () => {
-        replace(await setCorrectionApplied(worksheetId, correction, !correction.isApplied))
-        // 확인하면 접어서 다음 카드를 보기 쉽게 한다.
-        if (!correction.isApplied) setSelectedId(null)
+        if (!correction.isApplied) replace(await setCorrectionApplied(worksheetId, correction, true))
+        setSelectedId(null)
       },
       '첨삭을 반영하지 못했어요.',
     )
@@ -97,6 +127,103 @@ export default function CorrectionReviewPage() {
       },
       '첨삭을 삭제하지 못했어요.',
     )
+
+  const selectComment = (comment: TeacherComment) => {
+    const opening = selectedCommentId !== comment.id
+    setSelectedCommentId(opening ? comment.id : null)
+    if (opening) {
+      setTab('manual')
+      setPageId(comment.pageId)
+    }
+  }
+
+  const runComment = async (action: () => Promise<void>, fallback: string) => {
+    setCommentBusy(true)
+    setCommentError('')
+    try {
+      await action()
+      return true
+    } catch (error) {
+      setCommentError(errorMessage(error, fallback))
+      return false
+    } finally {
+      setCommentBusy(false)
+    }
+  }
+
+  // 도구를 켜면 수기 첨삭 탭으로 넘어가고, 골라 둔 영역의 모양도 그 도구로 바꾼다. null이면 손 모드로 돌아간다.
+  // 도구 막대는 색(빨강·파랑)도 함께 넘겨, 첨삭 유형도 그 색으로 맞춘다.
+  const changeTool = (next: CommentTool | null, nextKind?: CommentKind) => {
+    setTool(next)
+    if (nextKind) setKind(nextKind)
+    if (!next) return
+    setTab('manual')
+    setDraft((prev) => prev && { ...prev, tool: next })
+  }
+
+  const saveComment = (content: string) =>
+    runComment(async () => {
+      if (!draft) return
+      const { region } = draft
+      const saved = await createComment(worksheetId, { pageId: region.pageId, highlightType: draft.tool, color: kind, regions: [region], content })
+      setReview((prev) => prev && { ...prev, comments: [...prev.comments, saved] })
+      setDraft(null)
+      // 다 쓴 도구는 끄고 손 모드로 돌아간다.
+      setTool(null)
+    }, '수기 첨삭을 저장하지 못했어요.')
+
+  // AI 첨삭 표시를 옮기면 화면에 먼저 반영하고 저장한다. 실패하면 원래 자리로 돌린다.
+  const moveAiMark = async (id: number, regions: Region[]) => {
+    const correction = review?.corrections.find((item) => item.id === id)
+    if (!correction) return
+    replace({ ...correction, regions })
+    setActionError('')
+    try {
+      replace(await moveCorrection(worksheetId, correction, regions))
+    } catch (error) {
+      replace(correction)
+      setActionError(errorMessage(error, '첨삭 위치를 저장하지 못했어요.'))
+    }
+  }
+
+  // 수기 첨삭은 저장 뒤 위치를 바꿀 수 없어서(API), 새 자리에 다시 저장하고 원래 것을 지운다.
+  const moveCommentMark = (id: number, regions: Region[]) => {
+    const comment = review?.comments.find((item) => item.id === id)
+    if (!comment) return
+    const swap = (from: TeacherComment, to: TeacherComment) =>
+      setReview((prev) => prev && { ...prev, comments: prev.comments.map((item) => (item.id === from.id ? to : item)) })
+    swap(comment, { ...comment, regions })
+    void runComment(async () => {
+      let saved: TeacherComment
+      try {
+        saved = await createComment(worksheetId, { ...comment, regions })
+      } catch (error) {
+        swap({ ...comment, regions }, comment)
+        throw error
+      }
+      swap({ ...comment, regions }, saved)
+      if (selectedCommentId === comment.id) setSelectedCommentId(saved.id)
+      // 다시 저장하면 ID가 바뀌므로, 옮겨 둔 메모 자리를 새 ID로 넘긴다.
+      setNotePositions((prev) => {
+        const { [`comment-${comment.id}`]: position, ...rest } = prev
+        return position ? { ...rest, [`comment-${saved.id}`]: position } : prev
+      })
+      try {
+        await deleteComment(worksheetId, comment)
+      } catch (error) {
+        // 원래 것이 서버에 남았으니 목록에도 다시 보여준다.
+        setReview((prev) => prev && { ...prev, comments: [...prev.comments, comment] })
+        throw error
+      }
+    }, '수기 첨삭 위치를 옮기지 못했어요.')
+  }
+
+  const removeComment = (comment: TeacherComment) =>
+    runComment(async () => {
+      await deleteComment(worksheetId, comment)
+      setReview((prev) => prev && { ...prev, comments: prev.comments.filter((item) => item.id !== comment.id) })
+      setSelectedCommentId(null)
+    }, '수기 첨삭을 삭제하지 못했어요.')
 
   if (!review || pageId === null) {
     const message = validId ? loadError : '학습지를 찾을 수 없어요.'
@@ -122,65 +249,138 @@ export default function CorrectionReviewPage() {
           selectedId={selectedId}
           onSelect={(id) => {
             const correction = review.corrections.find((item) => item.id === id)
-            if (correction) select(correction)
+            if (correction) {
+              setTab('ai')
+              select(correction)
+            }
           }}
+          comments={review.comments}
+          selectedCommentId={selectedCommentId}
+          onSelectComment={(id) => {
+            const comment = review.comments.find((item) => item.id === id)
+            if (comment) selectComment(comment)
+          }}
+          onMoveCorrection={(id, regions) => void moveAiMark(id, regions)}
+          onMoveComment={moveCommentMark}
+          tool={tool}
+          onToolChange={changeTool}
+          kind={kind}
+          draft={draft}
+          onDraw={(region) => tool && setDraft({ region, tool })}
+          notePositions={notePositions}
+          onNoteMove={(key, position) => setNotePositions((prev) => ({ ...prev, [key]: position }))}
         />
 
-        <aside aria-label="첨삭 목록" className="flex w-[400px] shrink-0 flex-col gap-ds-20 px-ds-24">
+        <aside aria-label="첨삭 목록" className="flex w-[400px] shrink-0 flex-col px-ds-24">
           <div role="tablist" aria-label="첨삭 종류" className="flex">
-            <button type="button" role="tab" aria-selected="true" className="h-ds-48 flex-1 border-b-2 border-solid border-border-strong text-label2-semibold text-text-neutral-default">
-              AI 첨삭
-            </button>
-            {/* shortcut: 수기 첨삭 탭은 다음 작업에서 만든다, 그때 탭 전환과 코멘트 편집을 붙인다. */}
-            <button type="button" role="tab" aria-selected="false" disabled className="h-ds-48 flex-1 border-b border-solid border-border-disabled text-label2-medium text-text-neutral-muted">
-              수기 첨삭
-            </button>
+            {(['ai', 'manual'] as const).map((item) => (
+              <button
+                key={item}
+                type="button"
+                role="tab"
+                aria-selected={tab === item}
+                onClick={() => {
+                  setTab(item)
+                  // AI 첨삭 탭으로 가면 표시 도구를 끈다.
+                  if (item === 'ai') setTool(null)
+                  // 수기 첨삭 탭을 열면 기본 도구(밑줄)를 켜서 바로 끌어 고를 수 있게 한다.
+                  else if (!tool) setTool('UNDERLINE')
+                }}
+                className={`h-ds-48 flex-1 border-solid ${
+                  tab === item ? 'border-b-2 border-border-strong text-label2-semibold text-text-neutral-default' : 'border-b border-border-disabled text-label2-medium text-text-neutral-muted'
+                }`}
+              >
+                {item === 'ai' ? 'AI 첨삭' : '수기 첨삭'}
+              </button>
+            ))}
           </div>
 
-          <div className="flex flex-col gap-ds-12">
-            <div className="flex flex-col gap-ds-4">
-              <h2 className="flex items-center gap-ds-12 text-h3">
-                <span className="text-text-neutral-default">AI 첨삭</span>
-                <span className="text-text-neutral-muted">{review.corrections.length}개</span>
-              </h2>
-              <p className="text-body2-regular text-text-neutral-subtle">코멘트를 선택하면 수정 이유와 추천 문장을 확인할 수 있어요.</p>
-            </div>
-            <div className="flex items-center gap-ds-12 text-label3-semibold">
-              <span className="flex items-center gap-ds-4 text-text-accent-red">
-                <span className="flex size-ds-16 items-center justify-center">
-                  <img src={correctionIcon} alt="" width={13.2} height={12} />
-                </span>
-                오류 수정
-              </span>
-              <span className="flex items-center gap-ds-4 text-text-brand-strong">
-                <img src={suggestionIcon} alt="" width={16} height={16} />
-                개선 제안
-              </span>
-            </div>
-            {actionError && (
-              <p role="alert" className="text-body2-regular text-text-accent-red">
-                {actionError}
-              </p>
+          {/* 탭 아래 내용만 스크롤되고, 임시 저장·최종 저장은 아래에 고정된다. */}
+          <div className="relative min-h-0 flex-1 overflow-y-auto pt-ds-24 pb-ds-16">
+            {tab === 'manual' ? (
+              <ManualCommentPanel
+                tool={tool}
+                onToolChange={changeTool}
+                kind={kind}
+                onKindChange={setKind}
+                hasRegion={draft !== null}
+                onSave={saveComment}
+                onCancel={() => {
+                  setDraft(null)
+                  setCommentError('')
+                }}
+                comments={review.comments}
+                selectedCommentId={selectedCommentId}
+                onSelectComment={(id) => {
+                  const comment = review.comments.find((item) => item.id === id)
+                  if (comment) selectComment(comment)
+                }}
+                onDeleteComment={removeComment}
+                busy={commentBusy}
+                error={commentError}
+              />
+            ) : (
+              <div className="flex flex-col gap-ds-24">
+                <div className="flex items-center justify-between gap-ds-12">
+                  <h2 className="flex items-center gap-ds-8">
+                    <span className="text-h3 text-text-neutral-default">AI 첨삭</span>
+                    <span className="text-body1-medium text-text-neutral-muted">{review.corrections.length}개</span>
+                  </h2>
+                  <div className="flex items-center gap-ds-12 text-label3-semibold">
+                    <span className="flex items-center gap-ds-4 text-text-accent-red">
+                      <span className="flex size-ds-16 items-center justify-center">
+                        <img src={correctionIcon} alt="" width={13.2} height={12} />
+                      </span>
+                      오류 수정
+                    </span>
+                    <span className="flex items-center gap-ds-4 text-text-brand-strong">
+                      <img src={suggestionIcon} alt="" width={16} height={16} />
+                      개선 제안
+                    </span>
+                  </div>
+                </div>
+                {actionError && (
+                  <p role="alert" className="text-body2-regular text-text-accent-red">
+                    {actionError}
+                  </p>
+                )}
+                <ul className="flex flex-col gap-ds-10">
+                  {review.corrections.map((correction) => (
+                    <li key={correction.id}>
+                      <CorrectionCard
+                        correction={correction}
+                        expanded={correction.id === selectedId}
+                        busy={busyId === correction.id}
+                        onToggle={() => select(correction)}
+                        onDelete={() => remove(correction)}
+                        onConfirm={() => confirm(correction)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
 
-          <ul className="flex min-h-px flex-1 flex-col gap-ds-16 overflow-y-auto pb-ds-16">
-            {review.corrections.map((correction) => (
-              <li key={correction.id}>
-                <CorrectionCard
-                  correction={correction}
-                  expanded={correction.id === selectedId}
-                  busy={busyId === correction.id}
-                  onToggle={() => select(correction)}
-                  onDelete={() => remove(correction)}
-                  onConfirm={() => confirm(correction)}
-                />
-              </li>
-            ))}
-          </ul>
-          {/* shortcut: 임시 저장·최종 저장과 완료 모달은 다음 작업에서 붙인다. */}
+          <div className="flex shrink-0 justify-end gap-ds-8 pt-ds-12">
+            {/* shortcut: 임시 저장 API가 없다(첨삭 반영·삭제·수기 첨삭은 누를 때마다 이미 저장됨), 그래서 홈으로 나가기만 한다. 임시 저장 상태 API가 생기면 함께 부른다. */}
+            <ActionButton size="md" variant="secondary" onClick={() => navigate('/main')}>
+              임시 저장
+            </ActionButton>
+            {/* shortcut: 첨삭 완료 API가 없어 완료 안내만 띄운다, 완료 처리 API가 생기면 성공한 뒤 띄운다. */}
+            <ActionButton size="md" onClick={() => setCompleteOpen(true)}>
+              최종 저장
+            </ActionButton>
+          </div>
         </aside>
       </div>
+
+      <CompleteModal
+        open={completeOpen}
+        title={review.fileName}
+        onClose={() => setCompleteOpen(false)}
+        onStartNew={() => navigate('/corrections')}
+      />
     </CorrectionLayout>
   )
 }

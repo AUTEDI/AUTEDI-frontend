@@ -28,7 +28,21 @@ export type Correction = {
   locationUncertain: boolean
 }
 
-export type Review = { fileName: string; pages: ReviewPage[]; corrections: Correction[] }
+export type HighlightType = 'HIGHLIGHT' | 'UNDERLINE' | 'STRIKETHROUGH' | 'ARROW' | 'TEXTBOX' | 'CARET'
+export type CommentColor = 'RED' | 'BLUE' | 'YELLOW' | 'GREEN'
+
+/** 선생님이 직접 단 수기 첨삭 */
+export type TeacherComment = {
+  id: number
+  etag: string | null
+  pageId: number
+  highlightType: HighlightType
+  color: CommentColor
+  regions: Region[]
+  content: string
+}
+
+export type Review = { fileName: string; pages: ReviewPage[]; corrections: Correction[]; comments: TeacherComment[] }
 
 const record = (value: unknown) => (typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {})
 const text = (value: unknown) => (typeof value === 'string' ? value : '')
@@ -67,6 +81,23 @@ function toCorrection(value: unknown): Correction | null {
   }
 }
 
+const HIGHLIGHT_TYPES: readonly string[] = ['HIGHLIGHT', 'UNDERLINE', 'STRIKETHROUGH', 'ARROW', 'TEXTBOX', 'CARET']
+const COLORS: readonly string[] = ['RED', 'BLUE', 'YELLOW', 'GREEN']
+
+function toComment(value: unknown): TeacherComment | null {
+  const item = record(value)
+  if (typeof item.id !== 'number' || typeof item.pageId !== 'number') return null
+  return {
+    id: item.id,
+    etag: typeof item.etag === 'string' ? item.etag : null,
+    pageId: item.pageId,
+    highlightType: (typeof item.highlightType === 'string' && HIGHLIGHT_TYPES.includes(item.highlightType) ? item.highlightType : 'UNDERLINE') as HighlightType,
+    color: (typeof item.color === 'string' && COLORS.includes(item.color) ? item.color : 'RED') as CommentColor,
+    regions: toRegions(item.regions),
+    content: text(item.content),
+  }
+}
+
 /** 검토 화면에 필요한 학습지 정보·페이지·활성 첨삭을 한 번에 받는다. */
 export async function getReview(worksheetId: number): Promise<Review> {
   const result = record(
@@ -85,7 +116,10 @@ export async function getReview(worksheetId: number): Promise<Review> {
     .filter((item) => record(item).status !== 'DELETED')
     .map(toCorrection)
     .filter((item): item is Correction => item !== null)
-  return { fileName: text(record(worksheet.file).name), pages, corrections }
+  const comments = (Array.isArray(result.comments) ? result.comments : [])
+    .map(toComment)
+    .filter((item): item is TeacherComment => item !== null)
+  return { fileName: text(record(worksheet.file).name), pages, corrections, comments }
 }
 
 /** 페이지 이미지를 받아 화면에 걸 수 있는 주소(blob:)로 돌려준다. 다 쓰면 URL.revokeObjectURL로 해제한다. */
@@ -101,7 +135,7 @@ export async function getPageImageUrl(worksheetId: number, pageNumber: number): 
   }
 }
 
-const ifMatch = (correction: Correction) => (correction.etag ? { 'If-Match': correction.etag } : {})
+const ifMatch = (item: { etag: string | null }) => (item.etag ? { 'If-Match': item.etag } : {})
 
 /** 첨삭을 학생 리포트에 반영할지 정한다. 바뀐 첨삭(새 ETag 포함)을 돌려준다. */
 export async function setCorrectionApplied(worksheetId: number, correction: Correction, applied: boolean): Promise<Correction> {
@@ -118,6 +152,20 @@ export async function setCorrectionApplied(worksheetId: number, correction: Corr
   return toCorrection(result) ?? { ...correction, isApplied: applied }
 }
 
+/** 선생님이 옮긴 첨삭 표시 위치를 저장한다. 바뀐 첨삭(새 ETag 포함)을 돌려준다. */
+export async function moveCorrection(worksheetId: number, correction: Correction, regions: Region[]): Promise<Correction> {
+  const result = await request(
+    {
+      method: 'patch',
+      url: `/api/v1/worksheets/${worksheetId}/corrections/${correction.id}`,
+      data: { regions },
+      headers: { ...authHeader(), ...ifMatch(correction) },
+    },
+    '첨삭 위치를 저장하지 못했어요. 다시 시도해 주세요.',
+  )
+  return toCorrection(result) ?? { ...correction, regions }
+}
+
 /** 첨삭을 지운다. 서버에서는 복원할 수 있는 삭제 상태가 된다. */
 export async function deleteCorrection(worksheetId: number, correction: Correction): Promise<void> {
   await request(
@@ -127,5 +175,40 @@ export async function deleteCorrection(worksheetId: number, correction: Correcti
       headers: { ...authHeader(), ...ifMatch(correction) },
     },
     '첨삭을 삭제하지 못했어요. 다시 시도해 주세요.',
+  )
+}
+
+/** 수기 첨삭을 저장한다. 표시 모양·색·위치는 저장 뒤 바꿀 수 없다. */
+export async function createComment(
+  worksheetId: number,
+  comment: Pick<TeacherComment, 'pageId' | 'highlightType' | 'color' | 'regions' | 'content'>,
+): Promise<TeacherComment> {
+  const result = await request(
+    { method: 'post', url: `/api/v1/worksheets/${worksheetId}/comments`, data: comment, headers: authHeader() },
+    '수기 첨삭을 저장하지 못했어요. 다시 시도해 주세요.',
+  )
+  const saved = toComment(result)
+  if (!saved) throw new ApiError('저장한 수기 첨삭을 확인할 수 없어요. 새로고침해 주세요.')
+  return saved
+}
+
+/** 수기 첨삭의 내용만 고친다. */
+export async function updateComment(worksheetId: number, comment: TeacherComment, content: string): Promise<TeacherComment> {
+  const result = await request(
+    {
+      method: 'patch',
+      url: `/api/v1/worksheets/${worksheetId}/comments/${comment.id}`,
+      data: { content },
+      headers: { ...authHeader(), ...ifMatch(comment) },
+    },
+    '수기 첨삭을 고치지 못했어요. 다시 시도해 주세요.',
+  )
+  return toComment(result) ?? { ...comment, content }
+}
+
+export async function deleteComment(worksheetId: number, comment: TeacherComment): Promise<void> {
+  await request(
+    { method: 'delete', url: `/api/v1/worksheets/${worksheetId}/comments/${comment.id}`, headers: { ...authHeader(), ...ifMatch(comment) } },
+    '수기 첨삭을 삭제하지 못했어요. 다시 시도해 주세요.',
   )
 }
