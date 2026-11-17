@@ -641,8 +641,9 @@ export default function ReviewCanvas({
                     photoRef.current!.setPointerCapture(event.pointerId)
                     setGesture({ type: 'note', key: note.key, clientX: event.clientX, clientY: event.clientY, x0: note.x, y0: note.y, x: note.x, y: note.y, moved: false })
                   }}
-                  className={`absolute flex h-[20px] items-center rounded-[4px] px-ds-4 text-label3-medium ${note.tone} ${
-                    note.selected ? 'bg-background-neutral-default font-semibold shadow-sm' : note.uncertain ? '' : 'bg-[var(--opacity-white-a70)]'
+                  // 디자인대로 메모 배경은 흰색 30%(rounded 4px, 좌우 4px)다. 고른 메모는 굵게 한다.
+                  className={`absolute flex h-[20px] items-center rounded-[4px] bg-[var(--opacity-white-a30)] px-ds-4 text-label3-medium ${note.tone} ${
+                    note.selected ? 'font-semibold' : ''
                   } ${note.uncertain && note.x < 0 ? 'justify-end text-right' : ''} ${dim(note.selected)} ${
                     drawing ? 'pointer-events-none' : 'cursor-move touch-none'
                   }`}
