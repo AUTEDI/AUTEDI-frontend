@@ -30,6 +30,7 @@
   --color-icon-neutral-subtle: var(--icon-neutral-subtle);
   --color-icon-neutral-muted: var(--icon-neutral-muted);
   --color-icon-neutral-inverse: var(--icon-neutral-inverse);
+  --color-icon-brand-muted: var(--icon-brand-muted);
   --color-icon-brand-subtle: var(--icon-brand-subtle);
   --color-icon-brand-strong: var(--icon-brand-strong);
   --color-icon-accent-red: var(--icon-accent-red);
