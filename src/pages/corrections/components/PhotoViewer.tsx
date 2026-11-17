@@ -2,12 +2,7 @@ import { useState, type CSSProperties } from 'react'
 import chevronIcon from '../../../assets/design-system/icon-chevron-down.svg'
 import flipIcon from '../../../assets/design-system/icon-flip.svg'
 import rotateIcon from '../../../assets/design-system/icon-rotate.svg'
-import zoomInIcon from '../../../assets/design-system/icon-zoom-in.svg'
-import zoomOutIcon from '../../../assets/design-system/icon-zoom-out.svg'
-
-const ZOOM_MIN = 0.5
-const ZOOM_MAX = 2
-const ZOOM_STEP = 0.1
+import ZoomControl from './ZoomControl'
 
 export type PhotoViewerProps = {
   src: string
@@ -45,7 +40,6 @@ export default function PhotoViewer({ src, alt, onPrev, onNext }: PhotoViewerPro
     transform: `translate(-50%, -50%) rotate(${rotation}deg) scaleX(${flipped ? -1 : 1})`,
   }
 
-  const changeZoom = (delta: number) => setZoom((value) => Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value + delta)) * 10) / 10)
   const arrow = 'flex h-[43px] w-[29px] items-center justify-center rounded-ds-small bg-background-neutral-subtle disabled:invisible'
   const control = 'flex items-center rounded-ds-small border border-solid border-border-weak bg-background-neutral-default'
 
@@ -77,15 +71,7 @@ export default function PhotoViewer({ src, alt, onPrev, onNext }: PhotoViewerPro
       </div>
 
       <div className="flex items-center justify-end gap-ds-8">
-        <div className={`${control} gap-ds-8 px-ds-12 py-ds-8`}>
-          <button type="button" aria-label="축소" disabled={zoom <= ZOOM_MIN} onClick={() => changeZoom(-ZOOM_STEP)} className="flex size-ds-16 items-center justify-center disabled:opacity-40">
-            <img src={zoomOutIcon} alt="" width={13.25} height={1.25} />
-          </button>
-          <span className="min-w-[32px] pl-ds-4 text-center text-label3-medium text-text-neutral-default">{Math.round(zoom * 100)}%</span>
-          <button type="button" aria-label="확대" disabled={zoom >= ZOOM_MAX} onClick={() => changeZoom(ZOOM_STEP)} className="flex size-ds-16 items-center justify-center disabled:opacity-40">
-            <img src={zoomInIcon} alt="" width={11.25} height={11.25} />
-          </button>
-        </div>
+        <ZoomControl zoom={zoom} onZoomChange={setZoom} />
         <div className={`${control} h-[34px]`}>
           <button type="button" aria-label="오른쪽으로 90도 회전" onClick={() => setRotation((value) => (value + 90) % 360)} className="flex h-full items-center px-ds-12">
             <img src={rotateIcon} alt="" width={16} height={16} />

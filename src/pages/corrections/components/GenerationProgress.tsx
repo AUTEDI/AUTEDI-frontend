@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { subscribeEvents } from '../../../apis/events'
 import { getGeneration, retryGeneration, type Generation } from '../../../apis/generations'
 import checkStrongIcon from '../../../assets/design-system/icon-check-strong.svg'
@@ -23,11 +23,13 @@ export type GenerationProgressProps = {
   /** null이면 학습지를 올리고 생성을 요청하는 중이다. */
   job: GenerationJob | null
   onCancel: () => void
+  /** 생성이 끝나면 부른다. 검토 화면으로 넘어간다. */
+  onSucceeded: (worksheetId: number) => void
   className?: string
 }
 
 /** AI 첨삭 3단계: 생성 작업의 진행 상황을 보여준다. */
-export default function GenerationProgress({ job, onCancel, className = '' }: GenerationProgressProps) {
+export default function GenerationProgress({ job, onCancel, onSucceeded, className = '' }: GenerationProgressProps) {
   const worksheetId = job?.worksheetId
   const [generation, setGeneration] = useState(job?.generation ?? null)
   const [retrying, setRetrying] = useState(false)
@@ -35,6 +37,14 @@ export default function GenerationProgress({ job, onCancel, className = '' }: Ge
   const id = generation?.id
   const status = generation?.status
   const finished = status === 'SUCCEEDED' || status === 'FAILED'
+
+  const onSucceededRef = useRef(onSucceeded)
+  useEffect(() => {
+    onSucceededRef.current = onSucceeded
+  })
+  useEffect(() => {
+    if (status === 'SUCCEEDED' && worksheetId !== undefined) onSucceededRef.current(worksheetId)
+  }, [status, worksheetId])
 
   useEffect(() => {
     if (worksheetId === undefined || id === undefined || finished) return
@@ -131,7 +141,7 @@ export default function GenerationProgress({ job, onCancel, className = '' }: Ge
               )}
             </div>
           ) : (
-            // shortcut: 첨삭 검토 화면이 아직 없어 완료 후에는 머무른다, 검토 화면을 만들 때 완료 시 그쪽으로 넘어간다.
+            // 완료되면 곧바로 검토 화면으로 넘어가므로 버튼을 두지 않는다.
             status !== 'SUCCEEDED' && (
               <ActionButton size="md" variant="secondary" onClick={onCancel}>
                 취소

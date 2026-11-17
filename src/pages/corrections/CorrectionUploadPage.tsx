@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { createGeneration } from '../../apis/generations'
 import { createWorksheet, getWorksheetFile, saveWorksheetSettings, type CorrectionArea } from '../../apis/worksheets'
 import ActionButton from '../../components/common/ActionButton'
@@ -6,11 +7,11 @@ import { photoError } from '../../utils/photo'
 import SegmentedControl from '../../components/common/SegmentedControl'
 import Select from '../../components/common/Select'
 import TextField from '../../components/common/TextField'
+import CorrectionLayout from './components/CorrectionLayout'
 import FileDropzone from './components/FileDropzone'
 import FilePreviewPanel, { type PreviewPage } from './components/FilePreviewPanel'
 import GenerationProgress, { type GenerationJob } from './components/GenerationProgress'
 import QrUploadModal from './components/QrUploadModal'
-import Stepper from './components/Stepper'
 
 type Level = 'standard' | 'advanced'
 
@@ -69,6 +70,7 @@ function startUpload(pages: UploadPage[]): Upload {
 
 /** AI 첨삭 1~3단계: 학습지 사진을 올리고(1) 확인한 뒤(2) 첨삭 생성을 기다린다(3). 파일 정보와 첨삭 영역도 여기서 정한다. */
 export default function CorrectionUploadPage() {
+  const navigate = useNavigate()
   const [title, setTitle] = useState('')
   const [studentId, setStudentId] = useState('')
   const [levels, setLevels] = useState(loadLevels)
@@ -188,15 +190,7 @@ export default function CorrectionUploadPage() {
   const reviewing = pages.length > 0
 
   return (
-    <div className="flex min-h-full w-full min-w-0 flex-col gap-ds-24 py-ds-40 pr-[120px] pl-ds-40 font-sans">
-      <header className="flex items-center justify-between gap-ds-24">
-        <div className="flex flex-col gap-ds-16">
-          <h1 className="text-h1 text-text-neutral-default">AI 첨삭</h1>
-          <p className="text-body1-medium text-text-neutral-muted">학생의 글이 담긴 이미지나 스캔 파일을 업로드해주세요.</p>
-        </div>
-        <Stepper current={generating ? 3 : reviewing ? 2 : 1} className="shrink-0" />
-      </header>
-
+    <CorrectionLayout step={generating ? 3 : reviewing ? 2 : 1}>
       <div className="flex h-[652px] gap-ds-24">
         {generating ? (
           <GenerationProgress
@@ -209,6 +203,7 @@ export default function CorrectionUploadPage() {
               confirmAbortRef.current?.abort()
               setGenerating(null)
             }}
+            onSucceeded={(worksheetId) => navigate(`/corrections/review/${worksheetId}`)}
           />
         ) : receivingPhone ? (
           <FileDropzone className="min-w-px flex-1" uploading onFilesSelected={addFiles} onQrUploadClick={() => setQrOpen(true)} />
@@ -298,6 +293,6 @@ export default function CorrectionUploadPage() {
       </div>
 
       <QrUploadModal open={qrOpen} onClose={() => setQrOpen(false)} onUploaded={addPhoneUpload} />
-    </div>
+    </CorrectionLayout>
   )
 }
