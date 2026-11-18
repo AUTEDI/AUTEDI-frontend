@@ -22,6 +22,7 @@ import CorrectionLayout from './components/CorrectionLayout'
 import type { CommentKind, CommentTool } from './components/commentTools'
 import ManualCommentPanel from './components/ManualCommentPanel'
 import ReviewCanvas, { type NotePosition } from './components/ReviewCanvas'
+import { loadWorksheetMeta } from '../../utils/worksheetMeta'
 import { buildPdf, downloadPdf, preloadPdfLibraries } from './exportPdf'
 
 const errorMessage = (error: unknown, fallback: string) => (error instanceof Error ? error.message : fallback)
@@ -30,6 +31,8 @@ const errorMessage = (error: unknown, fallback: string) => (error instanceof Err
 export default function CorrectionReviewPage() {
   const worksheetId = Number(useParams().worksheetId)
   const navigate = useNavigate()
+  // 업로드 때 고른 제목·학생(이 브라우저에 저장됨). 제목이 없으면 파일 이름을 쓴다.
+  const [meta] = useState(() => loadWorksheetMeta(worksheetId))
   const [completeOpen, setCompleteOpen] = useState(false)
   // PDF는 첨삭 완료를 누르는 순간 만들기 시작한다(첨삭이 확정되는 시점이라 내용이 낡지 않는다).
   // 만드는 동안(building) 화면 밖에 페이지별 학습지를 그려 두고 이미지로 뜬다.
@@ -243,7 +246,7 @@ export default function CorrectionReviewPage() {
       .then((blob) => {
         if (!active) return
         setPdf({ status: 'ready', blob })
-        if (wantPdfRef.current) downloadPdf(blob, review.fileName)
+        if (wantPdfRef.current) downloadPdf(blob, meta.title || review.fileName)
       })
       .catch((error: unknown) => {
         if (active) setPdf({ status: 'error', message: errorMessage(error, 'PDF를 만들지 못했어요. 다시 시도해 주세요.') })
@@ -256,13 +259,13 @@ export default function CorrectionReviewPage() {
     return () => {
       active = false
     }
-  }, [pdf.status, review])
+  }, [pdf.status, review, meta.title])
 
   const startPdf = () => setPdf({ status: 'building' })
   const savePdf = () => {
     if (!review) return
     if (pdf.status === 'ready') {
-      downloadPdf(pdf.blob, review.fileName)
+      downloadPdf(pdf.blob, meta.title || review.fileName)
       return
     }
     // 만드는 중이면 끝나는 대로 받고, 실패했거나 아직 시작 전이면 다시 만든다.
@@ -286,7 +289,8 @@ export default function CorrectionReviewPage() {
     <CorrectionLayout step={4}>
       <div className="flex h-[652px] gap-ds-24">
         <ReviewCanvas
-          title={review.fileName}
+          title={meta.title || review.fileName}
+          student={meta.studentName}
           pages={review.pages}
           imageUrls={imageUrls}
           pageId={pageId}
@@ -433,7 +437,8 @@ export default function CorrectionReviewPage() {
 
       <CompleteModal
         open={completeOpen}
-        title={review.fileName}
+        title={meta.title || review.fileName}
+          student={meta.studentName}
         onClose={() => setCompleteOpen(false)}
         onStartNew={() => navigate('/corrections')}
         onSavePdf={savePdf}
@@ -447,7 +452,8 @@ export default function CorrectionReviewPage() {
           {review.pages.map((item) => (
             <div key={item.id} className="flex h-[1300px]">
               <ReviewCanvas
-                title={review.fileName}
+                title={meta.title || review.fileName}
+          student={meta.studentName}
                 pages={review.pages}
                 imageUrls={imageUrls}
                 pageId={item.id}

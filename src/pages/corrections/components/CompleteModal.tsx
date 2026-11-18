@@ -5,6 +5,8 @@ import Modal from '../../../components/common/Modal'
 export type CompleteModalProps = {
   open: boolean
   title: string
+  /** 학생 이름. 있으면 제목 앞에 "○○ 학생의"를 붙인다. */
+  student: string
   onClose: () => void
   onStartNew: () => void
   onSavePdf: () => void
@@ -15,7 +17,7 @@ export type CompleteModalProps = {
 }
 
 /** 첨삭 완료 버튼을 누르면 뜨는 안내 */
-export default function CompleteModal({ open, title, onClose, onStartNew, onSavePdf, savingPdf, pdfError }: CompleteModalProps) {
+export default function CompleteModal({ open, title, student, onClose, onStartNew, onSavePdf, savingPdf, pdfError }: CompleteModalProps) {
   return (
     <Modal open={open} onClose={onClose} labelledBy="complete-title">
       <div className="flex flex-col items-center gap-ds-24 px-ds-24">
@@ -23,8 +25,8 @@ export default function CompleteModal({ open, title, onClose, onStartNew, onSave
           <img src={completedIcon} alt="" width={48} height={48} />
         </span>
         <div className="flex flex-col gap-ds-8 text-center">
-          {/* shortcut: 학습지에 학생 정보가 없어 "김민지 학생의" 부분을 뺀다, 학생 API가 생기면 앞에 붙인다. */}
           <h2 id="complete-title" className="text-h3 text-text-neutral-default">
+            {student && `${student} 학생의 `}
             {title ? `‘${title}’` : '학습지'}
             <br />
             첨삭이 완성됐어요!

@@ -247,6 +247,8 @@ export type NotePosition = { x: number; y: number }
 
 export type ReviewCanvasProps = {
   title: string
+  /** 학생 이름. 없으면 학생 칸을 그리지 않는다. */
+  student: string
   pages: readonly ReviewPage[]
   /** 페이지 ID별 이미지 주소. 아직 받는 중이면 없다. */
   imageUrls: Readonly<Record<number, string>>
@@ -276,6 +278,7 @@ export type ReviewCanvasProps = {
 /** 첨삭 검토 왼쪽: 페이지 목록과 첨삭 표시가 올라간 학습지 사진 */
 export default function ReviewCanvas({
   title,
+  student,
   pages,
   imageUrls,
   pageId,
@@ -518,11 +521,18 @@ export default function ReviewCanvas({
   return (
     <div className="flex min-w-px flex-1 flex-col gap-ds-16 rounded-ds-large bg-background-neutral-weak px-ds-24 py-ds-20 font-sans">
       <div className="flex items-center justify-between gap-ds-16">
-        <p className="flex h-[36px] min-w-px items-center gap-ds-8 text-label2-medium text-ds-gray-600">
-          제목
-          <span className="max-w-[200px] truncate text-label2-semibold text-ds-gray-950">{title || '제목 없음'}</span>
-          {/* shortcut: 학습지에 학생 정보가 없어 학생 이름은 빼 둔다, 학생 API가 생기면 제목 옆에 붙인다. */}
-        </p>
+        <div className="flex h-[36px] min-w-px items-center gap-ds-24 text-label2-medium text-ds-gray-600">
+          <p className="flex min-w-px items-center gap-ds-8">
+            제목
+            <span className="max-w-[200px] truncate text-label2-semibold text-ds-gray-950">{title || '제목 없음'}</span>
+          </p>
+          {student && (
+            <p className="flex shrink-0 items-center gap-ds-8">
+              학생
+              <span className="text-label2-semibold text-ds-gray-950">{student}</span>
+            </p>
+          )}
+        </div>
         <div className="flex shrink-0 items-center gap-ds-8">
           <ZoomControl zoom={zoom} onZoomChange={setZoom} />
           <EditorToolbar tool={tool} kind={kind} onChange={onToolChange} />

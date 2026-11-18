@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router'
 import { createGeneration } from '../../apis/generations'
 import { createWorksheet, getWorksheetFile, saveWorksheetSettings, type CorrectionArea } from '../../apis/worksheets'
 import ActionButton from '../../components/common/ActionButton'
+import { mockStudents } from '../../mocks/students'
 import { photoError } from '../../utils/photo'
+import { saveWorksheetMeta } from '../../utils/worksheetMeta'
 import SegmentedControl from '../../components/common/SegmentedControl'
 import Select from '../../components/common/Select'
 import TextField from '../../components/common/TextField'
@@ -161,6 +163,11 @@ export default function CorrectionUploadPage() {
         uploadRef.current = upload
       }
       const worksheetId = await upload.worksheetId
+      // 제목·학생은 서버에 필드가 없어 검토 화면에서 쓰도록 이 브라우저에 남긴다.
+      saveWorksheetMeta(worksheetId, {
+        title: title.trim(),
+        studentName: mockStudents.find((student) => student.id === studentId)?.name ?? '',
+      })
       await saveWorksheetSettings(
         worksheetId,
         AREAS.map(({ id: key, area }) => ({ area, level: levels[key] === 'advanced' ? 'ADVANCED' : 'STANDARD' })),
@@ -239,13 +246,16 @@ export default function CorrectionUploadPage() {
             <div className="flex flex-col gap-ds-16">
               <div className="flex items-center gap-ds-8">
                 <span aria-hidden="true" className="w-[100px] text-label2-semibold text-text-neutral-muted">파일 제목</span>
-                {/* shortcut: 학습지 API에 제목 필드가 없어 화면에만 둔다, 백엔드에 필드가 생기면 업로드 때 함께 보낸다. */}
                 <TextField label="파일 제목" value={title} onValueChange={setTitle} />
               </div>
               <div className="flex items-center gap-ds-8">
                 <span aria-hidden="true" className="w-[100px] text-label2-semibold text-text-neutral-muted">학생 선택</span>
-                {/* shortcut: 학생 목록 API가 없어 빈 목록이다, 학생 관리 API를 붙일 때 options를 채운다. */}
-                <Select label="학생 선택" options={[]} value={studentId} onValueChange={setStudentId} />
+                <Select
+                  label="학생 선택"
+                  options={mockStudents.map((student) => ({ value: student.id, label: student.name }))}
+                  value={studentId}
+                  onValueChange={setStudentId}
+                />
               </div>
             </div>
           </section>
