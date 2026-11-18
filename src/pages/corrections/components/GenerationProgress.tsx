@@ -3,8 +3,8 @@ import { subscribeEvents } from '../../../apis/events'
 import { getGeneration, retryGeneration, type Generation } from '../../../apis/generations'
 import checkStrongIcon from '../../../assets/design-system/icon-check-strong.svg'
 import checkSubtleIcon from '../../../assets/design-system/icon-check-subtle.svg'
-import logo from '../../../assets/design-system/sidebar-logo.svg'
 import ActionButton from '../../../components/common/ActionButton'
+import GeneratingCharacter from './GeneratingCharacter'
 
 const STEPS = ['이미지 인식', 'AI 첨삭 생성', '첨삭 완료'] as const
 // SSE가 재연결 사이에 이벤트를 놓칠 수 있어, 이벤트가 없어도 이 간격으로 상태를 다시 확인한다.
@@ -91,18 +91,7 @@ export default function GenerationProgress({ job, onCancel, onSucceeded, classNa
       className={`flex flex-col items-center justify-center overflow-clip rounded-ds-large bg-background-brand-weak px-ds-24 py-[36px] font-sans ${className}`}
     >
       <div className="flex flex-col items-center gap-ds-24">
-        {/* shortcut: 캐릭터 모션이 아직 없어 로고가 통통 튀는 모션으로 대신한다, 캐릭터 에셋이 나오면 바꾼다. */}
-        <div aria-hidden="true" className="relative grid size-[240px] place-items-center">
-          <span className="absolute bottom-[56px] h-ds-8 w-[80px] rounded-ds-full bg-icon-brand-strong/15 blur-sm" />
-          <img
-            src={logo}
-            alt=""
-            width={128}
-            height={128}
-            draggable={false}
-            className={`relative select-none ${finished ? '' : 'motion-safe:animate-bounce'}`}
-          />
-        </div>
+        <GeneratingCharacter animated={!finished} />
 
         <div className="flex flex-col items-center gap-ds-32">
           <div role="status" aria-live="polite" className="flex flex-col items-center gap-ds-8 text-center">
@@ -116,7 +105,11 @@ export default function GenerationProgress({ job, onCancel, onSucceeded, classNa
               const current = index === reached - 1 && !finished
               return (
                 <li key={step} aria-current={current ? 'step' : undefined} className="flex w-[240px] flex-col items-center gap-ds-12">
-                  <span aria-hidden="true" className={`h-ds-8 w-full rounded-ds-full ${on ? 'bg-icon-brand-strong' : 'bg-icon-brand-muted'}`} />
+                  {/* 진행 중인 단계 막대는 완료되기 전까지 천천히 깜빡인다. */}
+                  <span
+                    aria-hidden="true"
+                    className={`h-ds-8 w-full rounded-ds-full ${on ? 'bg-icon-brand-strong' : 'bg-icon-brand-muted'} ${current ? 'motion-safe:animate-breathe' : ''}`}
+                  />
                   <span className="flex items-center gap-ds-8">
                     <span className={`text-body1-regular ${on ? 'text-text-brand-strong' : 'text-text-brand-subtle'}`}>{step}</span>
                     <span aria-hidden="true" className="flex size-ds-16 items-center justify-center">
