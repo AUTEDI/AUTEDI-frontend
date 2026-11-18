@@ -16,6 +16,15 @@ const SHAPE_BY_HIGHLIGHT: Record<HighlightType, Shape> = {
   TEXTBOX: 'box',
 }
 
+/**
+ * 첨삭의 기준 영역. 삽입은 넣을 자리가 한 곳이라, 앞에 넣기는 첫 영역·뒤에 넣기는 마지막 영역만 쓴다.
+ * 나머지 첨삭은 영역마다 표시를 그리고, 메모는 이 페이지의 첫 영역에 단다.
+ */
+function anchorRegion(correction: Correction, regions: readonly Region[]) {
+  if (correction.edit?.operation === 'INSERT') return correction.edit.position === 'AFTER' ? regions.at(-1) : regions[0]
+  return undefined
+}
+
 /** AI 첨삭의 표시 모양: 삭제는 취소선, 삽입은 앞·뒤 끝의 ∧, 나머지는 밑줄 */
 function aiShape(correction: Correction): Shape {
   const operation = correction.edit?.operation
@@ -30,19 +39,41 @@ const CARET_SIZE = { width: 14, height: 10 }
 // 삽입 표시 ∨: 위 끝을 박스 위 끝에 맞춰 박스 안에 넣고 아래를 가리킨다. 메모는 그 바로 위(박스 위 끝)에 붙인다.
 // 크기는 caretHeight로 정한다(높이:폭 = 2:3).
 const CARET = 'absolute top-0 bg-current [clip-path:polygon(0_0,20%_0,50%_65%,80%_0,100%_0,50%_100%)]'
+// AI 삽입 ∨를 잡는 손잡이. clip-path는 누르는 영역도 잘라 내서, 바깥 틀에 보이지 않는 여유(사방 6px)를 둔다.
+const CARET_HANDLE = "absolute top-0 before:absolute before:-inset-[6px] before:content-['']"
 const DEFAULT_CARET_HEIGHT = 8
 
 /** 영역 하나에 그리는 표시. 색은 부모의 글자색(currentColor)을 따른다. */
-function Mark({ shape, thick, dashed, caretHeight = DEFAULT_CARET_HEIGHT }: { shape: Shape; thick: boolean; dashed?: boolean; caretHeight?: number }) {
+/** handle이면 AI 삽입 ∨가 손잡이가 되어, 박스 대신 ∨를 눌러 고르고 끌 수 있다. */
+function Mark({
+  shape,
+  thick,
+  dashed,
+  caretHeight = DEFAULT_CARET_HEIGHT,
+  handle = false,
+}: {
+  shape: Shape
+  thick: boolean
+  dashed?: boolean
+  caretHeight?: number
+  handle?: boolean
+}) {
   const caretSize = { height: caretHeight, width: caretHeight * 1.5 }
   const line = `border-current ${thick ? 'border-b-3' : 'border-b-2'} ${dashed ? 'border-dashed' : ''}`
   switch (shape) {
     case 'strike':
       return <span className={`absolute inset-x-0 top-1/2 -translate-y-1/2 ${line}`} />
+    // 단어 첫 글자에 걸치면 단어 안에 넣는 것처럼 보여서, ∨를 박스 밖 단어 사이 공백에 둔다.
     case 'caret-before':
-      return <span className={`${CARET} left-0 -translate-x-1/2`} style={caretSize} />
     case 'caret-after':
-      return <span className={`${CARET} right-0 translate-x-1/2`} style={caretSize} />
+      return (
+        <span
+          className={`${CARET_HANDLE} ${shape === 'caret-before' ? 'right-full' : 'left-full'} ${handle ? 'pointer-events-auto cursor-move' : ''}`}
+          style={caretSize}
+        >
+          <span className={`${CARET} left-0 size-full`} />
+        </span>
+      )
     case 'caret':
       // 수기 첨삭의 ∨는 크기·각도를 고정하고 영역 가운데에 그린다. 위치만 옮길 수 있다.
       return (
@@ -145,6 +176,10 @@ function noteWidth(text: string, fontSize = DEFAULT_NOTE_FONT) {
 }
 
 type Box = { left: number; top: number; right: number; bottom: number }
+// 장애물에 어느 첨삭의 표시인지 붙여, 메모가 자기 박스와 겹치는 건 허용한다.
+type Obstacle = Box & { key?: string }
+// 밑줄 첨삭 메모를 박스 안으로 내리는 정도(박스 높이 대비). 손글씨 윗부분만 살짝 가리면서 밑줄에 가까워진다.
+const NOTE_DROP_RATIO = 0.3
 const overlaps = (a: Box, b: Box) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
 
 /**
@@ -155,11 +190,11 @@ const overlaps = (a: Box, b: Box) => a.left < b.right && b.left < a.right && a.t
  */
 function placeInlineNotes(
   notes: { key: string; width: number; height: number; region: Box; fixed?: { left: number; top: number } }[],
-  obstacles: Box[],
+  obstacles: Obstacle[],
   bounds: { width: number; height: number },
 ) {
   const placed = new Map<string, { left: number; top: number }>()
-  const taken = [...obstacles]
+  const taken: Obstacle[] = [...obstacles]
   // 고정 메모를 먼저 놓아, 다른 메모가 이 자리를 피해 가게 한다.
   notes.forEach(({ key, width, height, fixed }) => {
     if (!fixed) return
@@ -170,7 +205,9 @@ function placeInlineNotes(
     .filter((note) => !note.fixed)
     .sort((a, b) => a.region.top - b.region.top || a.region.left - b.region.left)
     .forEach(({ key, width, height: h, region }) => {
-      const tops = [region.top - h, region.bottom + NOTE_SPACE, region.top - 2 * h - NOTE_SPACE, region.bottom + h + 2 * NOTE_SPACE]
+      // 첫 자리: 메모 아래 끝을 박스 위 끝에서 박스 높이의 30%만큼 안으로 내린 자리.
+      const drop = (region.bottom - region.top) * NOTE_DROP_RATIO
+      const tops = [region.top + drop - h, region.bottom + NOTE_SPACE, region.top - 2 * h - NOTE_SPACE, region.bottom + h + 2 * NOTE_SPACE]
       const lefts = [region.left, region.right - width, (region.left + region.right - width) / 2]
       const fit = (left: number, top: number): Box => {
         const x = clamp(left, 0, Math.max(0, bounds.width - width))
@@ -181,7 +218,7 @@ function placeInlineNotes(
       search: for (const top of tops) {
         for (const left of lefts) {
           const candidate = fit(left, top)
-          if (!taken.some((other) => overlaps(candidate, other))) {
+          if (!taken.some((other) => other.key !== key && overlaps(candidate, other))) {
             box = candidate
             break search
           }
@@ -361,7 +398,10 @@ export default function ReviewCanvas({
   const aiNoteFont = (region: Region) => Math.max(MIN_NOTE_FONT, region.height * size.height * NOTE_FONT_RATIO)
   const items: NoteItem[] = []
   corrections.forEach((correction) => {
-    const region = correction.regions.find((item) => item.pageId === page.id)
+    const insertAt = anchorRegion(correction, correction.regions)
+    const region = correction.edit?.operation === 'INSERT'
+      ? insertAt?.pageId === page.id ? insertAt : undefined
+      : correction.regions.find((item) => item.pageId === page.id)
     const text = noteText(correction)
     if (!region || !text) return
     items.push({
@@ -408,11 +448,16 @@ export default function ReviewCanvas({
     right: (region.x + region.width) * size.width,
     bottom: (region.y + region.height) * size.height,
   })
-  const serverMarkBoxes = serverCorrections.flatMap((item) => item.regions).filter((region) => region.pageId === page.id).map(toBox)
+  const serverMarkBoxes: Obstacle[] = serverCorrections.flatMap((item) =>
+    item.regions.filter((region) => region.pageId === page.id).map((region) => ({ ...toBox(region), key: `ai-${item.id}` })),
+  )
   const autoPlaced = size.width
     ? placeInlineNotes(
         serverCorrections.flatMap((correction) => {
-          const region = correction.regions.find((item) => item.pageId === page.id)
+          const insertAt = anchorRegion(correction, correction.regions)
+          const region = correction.edit?.operation === 'INSERT'
+            ? insertAt?.pageId === page.id ? insertAt : undefined
+            : correction.regions.find((item) => item.pageId === page.id)
           const text = noteText(correction)
           if (!region || !text || correction.locationUncertain) return []
           const fontSize = aiNoteFont(region)
@@ -423,7 +468,9 @@ export default function ReviewCanvas({
           const fixed =
             correction.edit?.operation === 'INSERT'
               ? {
-                  left: (correction.edit.position === 'AFTER' ? box.right : box.left) - width / 2,
+                  // ∨(폭 = 글자 크기 × 0.75)는 박스 밖에 붙어 있으니, 그 가운데에 메모 가운데를 맞춘다.
+                  left:
+                    (correction.edit.position === 'AFTER' ? box.right + (fontSize * 0.75) / 2 : box.left - (fontSize * 0.75) / 2) - width / 2,
                   top: box.top - height,
                 }
               : undefined
@@ -510,7 +557,12 @@ export default function ReviewCanvas({
           </p>
         </div>
 
-        <div className="flex min-w-px flex-1 items-center justify-center overflow-hidden px-ds-24 [container-type:size]">
+        {/* PDF 저장은 이 영역(사진 + 첨삭 표시 + 옆 여백 메모)을 이미지로 뜬다. 사진이 다 뜨면 data-ready가 true다. */}
+        <div
+          data-export-photo
+          data-ready={photoReady}
+          className="flex min-w-px flex-1 items-center justify-center overflow-hidden px-ds-24 [container-type:size]"
+        >
           <div
             ref={photoRef}
             className={`relative shrink-0 touch-none ${gesture ? '' : 'transition-transform'} ${cursor}`}
@@ -592,8 +644,10 @@ export default function ReviewCanvas({
                 const key = `ai-${correction.id}`
                 const selected = correction.id === selectedId
                 const tone = correction.feedbackType === 'CORRECTION' ? 'text-text-accent-red' : 'text-text-brand-strong'
-                return shifted(key, correction.regions)
-                  .filter((region) => region.pageId === page.id)
+                const regions = shifted(key, correction.regions)
+                const insertAt = anchorRegion(correction, regions)
+                return regions
+                  .filter((region) => region.pageId === page.id && (correction.edit?.operation !== 'INSERT' || region === insertAt))
                   .map((region, regionIndex) => (
                     <button
                       key={`${key}-${regionIndex}`}
@@ -608,11 +662,17 @@ export default function ReviewCanvas({
                       onClick={(event) => {
                         if (event.detail === 0) onSelect(correction.id)
                       }}
-                      className={`absolute ${tone} ${dim(selected)} ${markInteraction}`}
+                      className={`absolute ${tone} ${dim(selected)} ${markInteraction} ${correction.edit?.operation === 'INSERT' ? 'pointer-events-none' : ''}`}
                       style={regionStyle(region)}
                     >
                       {/* 삽입 ∨ 높이는 이 첨삭 메모 글자 크기(박스 높이에서 추측)의 절반이다. */}
-                      <Mark shape={aiShape(correction)} thick={selected} dashed={correction.locationUncertain} caretHeight={aiNoteFont(region) / 2} />
+                      <Mark
+                        shape={aiShape(correction)}
+                        thick={selected}
+                        dashed={correction.locationUncertain}
+                        caretHeight={aiNoteFont(region) / 2}
+                        handle={!drawing}
+                      />
                     </button>
                   ))
               })}
