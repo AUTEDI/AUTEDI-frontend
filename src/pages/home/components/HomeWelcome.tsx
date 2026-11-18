@@ -11,7 +11,7 @@ export default function HomeWelcome({ user }: { user: AuthUser }) {
   return (
     <div className="flex flex-col gap-ds-16">
       <h1 className="text-h1 text-text-neutral-default">어서오세요, {displayName}</h1>
-      <p className="text-h3 text-text-neutral-muted"> {displayName}! 아침밥은 드셨는지요</p>
+      <p className="text-h3 text-text-neutral-muted">어서 오세요, {displayName}</p>
     </div>
   )
 }
