@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { TeacherComment } from '../../../apis/review'
 import chevronIcon from '../../../assets/design-system/icon-chevron-down.svg'
 import correctionIcon from '../../../assets/design-system/icon-correction.svg'
@@ -45,6 +45,11 @@ export default function ManualCommentPanel({
   error,
 }: ManualCommentPanelProps) {
   const [content, setContent] = useState('')
+  // 사진에서 수기 첨삭 표시를 누르면 목록의 그 항목이 보이도록 스크롤한다.
+  const selectedRef = useRef<HTMLLIElement>(null)
+  useEffect(() => {
+    selectedRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [selectedCommentId])
   const row = 'flex items-center justify-between'
   const rowLabel = 'text-label2-medium text-text-neutral-default'
 
@@ -135,7 +140,7 @@ export default function ManualCommentPanel({
             {comments.map((comment) => {
               const selected = comment.id === selectedCommentId
               return (
-                <li key={comment.id} className="flex flex-col gap-ds-12 rounded-ds-medium border border-solid border-border-default bg-background-neutral-default px-ds-16 py-ds-12">
+                <li key={comment.id} ref={selected ? selectedRef : undefined} className="flex flex-col gap-ds-12 rounded-ds-medium border border-solid border-border-default bg-background-neutral-default px-ds-16 py-ds-12">
                   <button type="button" aria-expanded={selected} onClick={() => onSelectComment(comment.id)} className="flex w-full items-center justify-between gap-ds-12 text-left">
                     <span className="flex min-w-px items-center gap-ds-12">
                       <span className={`flex shrink-0 items-center gap-ds-4 rounded-ds-small border border-solid border-current px-ds-12 py-ds-4 text-label2-semibold ${toneOf(comment.color)}`}>
