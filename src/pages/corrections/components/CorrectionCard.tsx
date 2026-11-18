@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { Correction } from '../../../apis/review'
 import ActionButton from '../../../components/common/ActionButton'
 import { areaOf } from './correctionAreas'
@@ -5,22 +6,30 @@ import { areaOf } from './correctionAreas'
 export type CorrectionCardProps = {
   correction: Correction
   expanded: boolean
+  /** 다른 첨삭을 고른 동안 흐리게 보인다. 아무것도 고르지 않았으면 모두 진하다. */
+  dimmed: boolean
   busy: boolean
   onToggle: () => void
   onDelete: () => void
   onConfirm: () => void
 }
 
-/** AI 첨삭 카드. 누르면 원문·추천 문장·수정 이유와 삭제·확인 버튼이 펼쳐진다. 확인(반영)한 카드는 흐리게 보인다. */
-export default function CorrectionCard({ correction, expanded, busy, onToggle, onDelete, onConfirm }: CorrectionCardProps) {
+/** AI 첨삭 카드. 누르면 원문·추천 문장·수정 이유와 삭제·확인 버튼이 펼쳐진다. */
+export default function CorrectionCard({ correction, expanded, dimmed, busy, onToggle, onDelete, onConfirm }: CorrectionCardProps) {
+  const cardRef = useRef<HTMLElement>(null)
+  // 사진에서 표시를 눌러 펼쳐져도 카드가 보이도록 목록을 스크롤한다.
+  useEffect(() => {
+    if (expanded) cardRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [expanded])
   const area = areaOf(correction.area)
   const isCorrection = correction.feedbackType === 'CORRECTION'
   const [width, height] = area.size
 
   return (
     <article
+      ref={cardRef}
       className={`flex flex-col gap-ds-20 rounded-ds-medium border border-solid border-border-default bg-background-neutral-default px-ds-16 pt-ds-12 pb-ds-16 ${
-        correction.isApplied && !expanded ? 'opacity-60' : ''
+        dimmed ? 'opacity-60' : ''
       }`}
     >
       <button type="button" aria-expanded={expanded} onClick={onToggle} className="flex w-full items-center gap-ds-16 text-left">

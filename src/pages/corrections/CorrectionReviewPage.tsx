@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import {
   createComment,
@@ -22,6 +22,7 @@ import CorrectionLayout from './components/CorrectionLayout'
 import type { CommentKind, CommentTool } from './components/commentTools'
 import ManualCommentPanel from './components/ManualCommentPanel'
 import ReviewCanvas, { type NotePosition } from './components/ReviewCanvas'
+import { buildPdf, downloadPdf, preloadPdfLibraries } from './exportPdf'
 
 const errorMessage = (error: unknown, fallback: string) => (error instanceof Error ? error.message : fallback)
 
@@ -30,6 +31,16 @@ export default function CorrectionReviewPage() {
   const worksheetId = Number(useParams().worksheetId)
   const navigate = useNavigate()
   const [completeOpen, setCompleteOpen] = useState(false)
+  // PDF는 첨삭 완료를 누르는 순간 만들기 시작한다(첨삭이 확정되는 시점이라 내용이 낡지 않는다).
+  // 만드는 동안(building) 화면 밖에 페이지별 학습지를 그려 두고 이미지로 뜬다.
+  const [pdf, setPdf] = useState<{ status: 'idle' | 'building' } | { status: 'ready'; blob: Blob } | { status: 'error'; message: string }>({
+    status: 'idle',
+  })
+  // 다 만들기 전에 PDF 저장하기를 눌렀으면, 다 만들어지는 대로 바로 내려받는다.
+  const [waitingPdf, setWaitingPdf] = useState(false)
+  const wantPdfRef = useRef(false)
+  const exportRef = useRef<HTMLDivElement>(null)
+  useEffect(preloadPdfLibraries, [])
   const [review, setReview] = useState<Review | null>(null)
   const [loadError, setLoadError] = useState('')
   const [imageUrls, setImageUrls] = useState<Record<number, string>>({})
@@ -225,6 +236,41 @@ export default function CorrectionReviewPage() {
       setSelectedCommentId(null)
     }, '수기 첨삭을 삭제하지 못했어요.')
 
+  useEffect(() => {
+    if (pdf.status !== 'building' || !review || !exportRef.current) return
+    let active = true
+    buildPdf(exportRef.current, review.pages.length)
+      .then((blob) => {
+        if (!active) return
+        setPdf({ status: 'ready', blob })
+        if (wantPdfRef.current) downloadPdf(blob, review.fileName)
+      })
+      .catch((error: unknown) => {
+        if (active) setPdf({ status: 'error', message: errorMessage(error, 'PDF를 만들지 못했어요. 다시 시도해 주세요.') })
+      })
+      .finally(() => {
+        if (!active) return
+        wantPdfRef.current = false
+        setWaitingPdf(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [pdf.status, review])
+
+  const startPdf = () => setPdf({ status: 'building' })
+  const savePdf = () => {
+    if (!review) return
+    if (pdf.status === 'ready') {
+      downloadPdf(pdf.blob, review.fileName)
+      return
+    }
+    // 만드는 중이면 끝나는 대로 받고, 실패했거나 아직 시작 전이면 다시 만든다.
+    wantPdfRef.current = true
+    setWaitingPdf(true)
+    if (pdf.status !== 'building') startPdf()
+  }
+
   if (!review || pageId === null) {
     const message = validId ? loadError : '학습지를 찾을 수 없어요.'
     return (
@@ -295,7 +341,7 @@ export default function CorrectionReviewPage() {
             ))}
           </div>
 
-          {/* 탭 아래 내용만 스크롤되고, 임시 저장·최종 저장은 아래에 고정된다. */}
+          {/* 탭 아래 내용만 스크롤되고, 임시 저장·첨삭 완료는 아래에 고정된다. */}
           <div className="relative min-h-0 flex-1 overflow-y-auto pt-ds-24 pb-ds-16">
             {tab === 'manual' ? (
               <ManualCommentPanel
@@ -350,6 +396,7 @@ export default function CorrectionReviewPage() {
                       <CorrectionCard
                         correction={correction}
                         expanded={correction.id === selectedId}
+                      dimmed={selectedId !== null && correction.id !== selectedId}
                         busy={busyId === correction.id}
                         onToggle={() => select(correction)}
                         onDelete={() => remove(correction)}
@@ -368,8 +415,17 @@ export default function CorrectionReviewPage() {
               임시 저장
             </ActionButton>
             {/* shortcut: 첨삭 완료 API가 없어 완료 안내만 띄운다, 완료 처리 API가 생기면 성공한 뒤 띄운다. */}
-            <ActionButton size="md" onClick={() => setCompleteOpen(true)}>
-              최종 저장
+            <ActionButton
+              size="md"
+              onClick={() => {
+                setCompleteOpen(true)
+                // 모달을 보는 동안 PDF를 미리 만든다. 다시 누르면 그 사이 바뀐 첨삭으로 새로 만든다.
+                wantPdfRef.current = false
+                setWaitingPdf(false)
+                startPdf()
+              }}
+            >
+              첨삭 완료
             </ActionButton>
           </div>
         </aside>
@@ -380,7 +436,42 @@ export default function CorrectionReviewPage() {
         title={review.fileName}
         onClose={() => setCompleteOpen(false)}
         onStartNew={() => navigate('/corrections')}
+        onSavePdf={savePdf}
+        savingPdf={waitingPdf}
+        pdfError={pdf.status === 'error' && !waitingPdf ? pdf.message : ''}
       />
+
+      {/* PDF용: 화면 밖에 페이지마다 선택·도구 없이 첨삭 표시만 그린 학습지. 화면에 보이는 것과 같은 그리기 코드를 쓴다. */}
+      {pdf.status === 'building' && (
+        <div ref={exportRef} aria-hidden="true" className="pointer-events-none fixed top-0 -left-[10000px] w-[1000px]">
+          {review.pages.map((item) => (
+            <div key={item.id} className="flex h-[1300px]">
+              <ReviewCanvas
+                title={review.fileName}
+                pages={review.pages}
+                imageUrls={imageUrls}
+                pageId={item.id}
+                onPageChange={() => {}}
+                corrections={review.corrections}
+                selectedId={null}
+                onSelect={() => {}}
+                onMoveCorrection={() => {}}
+                comments={review.comments}
+                selectedCommentId={null}
+                onSelectComment={() => {}}
+                onMoveComment={() => {}}
+                tool={null}
+                onToolChange={() => {}}
+                kind={kind}
+                draft={null}
+                onDraw={() => {}}
+                notePositions={notePositions}
+                onNoteMove={() => {}}
+              />
+            </div>
+          ))}
+        </div>
+      )}
     </CorrectionLayout>
   )
 }

@@ -7,10 +7,15 @@ export type CompleteModalProps = {
   title: string
   onClose: () => void
   onStartNew: () => void
+  onSavePdf: () => void
+  /** PDF를 만드는 중이면 버튼을 막고 진행 문구를 보여준다. */
+  savingPdf: boolean
+  /** PDF를 만들지 못했을 때 안내 문구 */
+  pdfError: string
 }
 
-/** 최종 저장 뒤 뜨는 첨삭 완료 안내 */
-export default function CompleteModal({ open, title, onClose, onStartNew }: CompleteModalProps) {
+/** 첨삭 완료 버튼을 누르면 뜨는 안내 */
+export default function CompleteModal({ open, title, onClose, onStartNew, onSavePdf, savingPdf, pdfError }: CompleteModalProps) {
   return (
     <Modal open={open} onClose={onClose} labelledBy="complete-title">
       <div className="flex flex-col items-center gap-ds-24 px-ds-24">
@@ -25,15 +30,19 @@ export default function CompleteModal({ open, title, onClose, onStartNew }: Comp
             첨삭이 완성됐어요!
           </h2>
           <p className="text-body1-regular text-text-neutral-subtle">학생의 첨삭 결과가 학생 이력에 저장됐어요</p>
+          {pdfError && (
+            <p role="alert" className="text-body2-regular text-text-accent-red">
+              {pdfError}
+            </p>
+          )}
         </div>
       </div>
       <div className="flex gap-ds-12 px-ds-48 pt-ds-24 pb-ds-60">
         <ActionButton size="md" variant="secondary" className="flex-1" onClick={onStartNew}>
           새 첨삭 시작
         </ActionButton>
-        {/* shortcut: PDF로 내보내는 API가 아직 없어 누를 수 없다, 백엔드 PDF API가 생기면 연결한다. */}
-        <ActionButton size="md" className="flex-1" disabled title="준비 중이에요">
-          PDF 저장하기
+        <ActionButton size="md" className="flex-1" disabled={savingPdf} onClick={onSavePdf}>
+          {savingPdf ? 'PDF 만드는 중...' : 'PDF 저장하기'}
         </ActionButton>
       </div>
     </Modal>
