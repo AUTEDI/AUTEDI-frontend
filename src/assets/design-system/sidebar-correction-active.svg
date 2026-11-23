@@ -1,0 +1,10 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="icon">
+<path id="Vector" d="M9.17178 2.24282C9.24864 1.69591 9.75431 1.31486 10.3012 1.39172L21.1942 2.92263C21.7411 2.99949 22.1221 3.50516 22.0453 4.05207L19.8185 19.8964C19.7416 20.4433 19.236 20.8243 18.6891 20.7475L7.7961 19.2165C7.24919 19.1397 6.86814 18.634 6.94501 18.0871L9.17178 2.24282Z" fill="#CDD2F7"/>
+<foreignObject x="1.6" y="2.6" width="17.8" height="20.8"><div xmlns="http://www.w3.org/1999/xhtml" style="backdrop-filter:blur(0.7px);clip-path:url(#bgblur_0_0_16_clip_path);height:100%;width:100%"></div></foreignObject><path id="Vector_2" data-figma-bg-blur-radius="1.4" d="M3 5C3 4.44772 3.44772 4 4 4H12.5858C12.851 4 13.1054 4.10536 13.2929 4.29289L17.7071 8.70711C17.8946 8.89464 18 9.149 18 9.41421V21C18 21.5523 17.5523 22 17 22H4C3.44772 22 3 21.5523 3 21V5Z" fill="#4C5AE0"/>
+<path id="Vector_3" d="M10 10V13M10 13V16M10 13H7M10 13H13" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" stroke="#CDD2F7"/>
+</g>
+<defs>
+<clipPath id="bgblur_0_0_16_clip_path" transform="translate(-1.6 -2.6)"><path d="M3 5C3 4.44772 3.44772 4 4 4H12.5858C12.851 4 13.1054 4.10536 13.2929 4.29289L17.7071 8.70711C17.8946 8.89464 18 9.149 18 9.41421V21C18 21.5523 17.5523 22 17 22H4C3.44772 22 3 21.5523 3 21V5Z"/>
+</clipPath></defs>
+</svg>

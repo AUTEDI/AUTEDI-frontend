@@ -1,0 +1,129 @@
+:root {
+  --font-family: var(--font-family-sans);
+}
+
+.ds-h1 {
+  font-family: var(--font-family);
+  font-size: var(--font-size-32);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-42);
+  letter-spacing: var(--letter-spacing-tighter);
+}
+.ds-h1:lang(en) { letter-spacing: var(--letter-spacing-normal); }
+
+.ds-h2 {
+  font-family: var(--font-family);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-32);
+  letter-spacing: var(--letter-spacing-tight);
+}
+.ds-h2:lang(en) { letter-spacing: var(--letter-spacing-normal); }
+
+.ds-h3 {
+  font-family: var(--font-family);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-28);
+  letter-spacing: var(--letter-spacing-tight);
+}
+.ds-h3:lang(en) { letter-spacing: var(--letter-spacing-normal); }
+
+.ds-body1medium {
+  font-family: var(--font-family);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-26);
+  letter-spacing: var(--letter-spacing-tight);
+}
+.ds-body1medium:lang(en) { letter-spacing: var(--letter-spacing-normal); }
+
+.ds-body1regular {
+  font-family: var(--font-family);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-26);
+  letter-spacing: var(--letter-spacing-tight);
+}
+.ds-body1regular:lang(en) { letter-spacing: var(--letter-spacing-normal); }
+
+.ds-body2medium {
+  font-family: var(--font-family);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-22);
+  letter-spacing: var(--letter-spacing-tight);
+}
+.ds-body2medium:lang(en) { letter-spacing: var(--letter-spacing-normal); }
+
+.ds-body2regular {
+  font-family: var(--font-family);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-22);
+  letter-spacing: var(--letter-spacing-tight);
+}
+.ds-body2regular:lang(en) { letter-spacing: var(--letter-spacing-normal); }
+
+.ds-label1semibold {
+  font-family: var(--font-family);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-24);
+  letter-spacing: var(--letter-spacing-tight);
+}
+.ds-label1semibold:lang(en) { letter-spacing: var(--letter-spacing-normal); }
+
+.ds-label1medium {
+  font-family: var(--font-family);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-24);
+  letter-spacing: var(--letter-spacing-tight);
+}
+.ds-label1medium:lang(en) { letter-spacing: var(--letter-spacing-normal); }
+
+.ds-label2semibold {
+  font-family: var(--font-family);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-20);
+  letter-spacing: var(--letter-spacing-tight);
+}
+.ds-label2semibold:lang(en) { letter-spacing: var(--letter-spacing-normal); }
+
+.ds-label2medium {
+  font-family: var(--font-family);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-20);
+  letter-spacing: var(--letter-spacing-tight);
+}
+.ds-label2medium:lang(en) { letter-spacing: var(--letter-spacing-normal); }
+
+.ds-label3semibold {
+  font-family: var(--font-family);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-16);
+  letter-spacing: var(--letter-spacing-normal);
+}
+.ds-label3semibold:lang(en) { letter-spacing: var(--letter-spacing-normal); }
+
+.ds-label3medium {
+  font-family: var(--font-family);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-16);
+  letter-spacing: var(--letter-spacing-normal);
+}
+.ds-label3medium:lang(en) { letter-spacing: var(--letter-spacing-normal); }
+
+.ds-caption {
+  font-family: var(--font-family);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-18);
+  letter-spacing: var(--letter-spacing-normal);
+}
+.ds-caption:lang(en) { letter-spacing: var(--letter-spacing-normal); }
