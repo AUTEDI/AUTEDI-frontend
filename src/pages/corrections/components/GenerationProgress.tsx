@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { subscribeEvents } from '../../../apis/events'
-import { getGeneration, retryGeneration, type Generation } from '../../../apis/generations'
+import { getGeneration, retryGeneration, type Generation, type GenerationStage, type GenerationStatus } from '../../../apis/generations'
 import checkStrongIcon from '../../../assets/design-system/icon-check-strong.svg'
 import checkSubtleIcon from '../../../assets/design-system/icon-check-subtle.svg'
 import ActionButton from '../../../components/common/ActionButton'
@@ -25,11 +25,12 @@ export type GenerationProgressProps = {
   onCancel: () => void
   /** 생성이 끝나면 부른다. 검토 화면으로 넘어간다. */
   onSucceeded: (worksheetId: number) => void
+  onStatusChange?: (status: GenerationStatus, stage: GenerationStage) => void
   className?: string
 }
 
 /** AI 첨삭 3단계: 생성 작업의 진행 상황을 보여준다. */
-export default function GenerationProgress({ job, onCancel, onSucceeded, className = '' }: GenerationProgressProps) {
+export default function GenerationProgress({ job, onCancel, onSucceeded, onStatusChange, className = '' }: GenerationProgressProps) {
   const worksheetId = job?.worksheetId
   const [generation, setGeneration] = useState(job?.generation ?? null)
   const [retrying, setRetrying] = useState(false)
@@ -39,9 +40,19 @@ export default function GenerationProgress({ job, onCancel, onSucceeded, classNa
   const finished = status === 'SUCCEEDED' || status === 'FAILED'
 
   const onSucceededRef = useRef(onSucceeded)
+  const onStatusChangeRef = useRef(onStatusChange)
+  const reportedStatus = useRef('')
   useEffect(() => {
     onSucceededRef.current = onSucceeded
+    onStatusChangeRef.current = onStatusChange
   })
+  useEffect(() => {
+    if (!generation) return
+    const key = `${generation.id}-${generation.status}-${generation.stage}`
+    if (reportedStatus.current === key) return
+    reportedStatus.current = key
+    onStatusChangeRef.current?.(generation.status, generation.stage)
+  }, [generation])
   useEffect(() => {
     if (status === 'SUCCEEDED' && worksheetId !== undefined) onSucceededRef.current(worksheetId)
   }, [status, worksheetId])

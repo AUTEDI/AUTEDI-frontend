@@ -14,6 +14,8 @@ import FileDropzone from './components/FileDropzone'
 import FilePreviewPanel, { type PreviewPage } from './components/FilePreviewPanel'
 import GenerationProgress, { type GenerationJob } from './components/GenerationProgress'
 import QrUploadModal from './components/QrUploadModal'
+import { trackEvent } from '../../analytics/client'
+import { createCorrectionFlow } from '../../analytics/correctionFlow'
 
 type Level = 'standard' | 'advanced'
 
@@ -73,6 +75,7 @@ function startUpload(pages: UploadPage[]): Upload {
 /** AI 첨삭 1~3단계: 학습지 사진을 올리고(1) 확인한 뒤(2) 첨삭 생성을 기다린다(3). 파일 정보와 첨삭 영역도 여기서 정한다. */
 export default function CorrectionUploadPage() {
   const navigate = useNavigate()
+  const [analytics] = useState(() => createCorrectionFlow(trackEvent))
   const [title, setTitle] = useState('')
   const [studentId, setStudentId] = useState('')
   const [levels, setLevels] = useState(loadLevels)
@@ -86,6 +89,10 @@ export default function CorrectionUploadPage() {
   const [generating, setGenerating] = useState<GenerationJob | 'preparing' | null>(null)
   const uploadRef = useRef<Upload | null>(null)
   const confirmAbortRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    analytics.view(generating ? 'generation' : pages.length > 0 ? 'settings' : 'upload')
+  }, [analytics, generating, pages.length])
 
   // 화면을 떠날 때 미리보기용 주소를 해제하고 올리던 학습지는 멈춘다.
   const pagesRef = useRef(pages)
@@ -122,10 +129,12 @@ export default function CorrectionUploadPage() {
     setConfirmError('')
     const error = files.map(photoError).find(Boolean)
     if (error) {
+      analytics.record('Correction Files Rejected', { source: 'local', file_count: files.length })
       setUploadError(error)
       return
     }
     setUploadError('')
+    if (files.length) analytics.record('Correction Files Added', { source: 'local', file_count: files.length })
     setPages((prev) => [
       ...prev,
       ...files.map((file) => ({ id: crypto.randomUUID(), name: file.name, url: URL.createObjectURL(file), file })),
@@ -138,6 +147,7 @@ export default function CorrectionUploadPage() {
     setReceivingPhone(true)
     try {
       const file = await getWorksheetFile(worksheetId)
+      analytics.record('Correction Files Added', { source: 'qr', file_count: 1 })
       setPages((prev) => [
         ...prev,
         { id: `worksheet-${worksheetId}`, name: '휴대폰 사진', url: URL.createObjectURL(file), file, worksheetId },
@@ -150,6 +160,8 @@ export default function CorrectionUploadPage() {
   }
   // 확인: 바로 AI 첨삭 중 화면으로 넘어가고, 미리 올리던 학습지를 기다린 뒤 설정을 저장하고 생성을 요청한다.
   const confirm = async () => {
+    analytics.record('Correction Generation Requested', { file_count: pages.length })
+    let preparationStage = 'upload'
     const controller = new AbortController()
     confirmAbortRef.current = controller
     setConfirmError('')
@@ -163,20 +175,28 @@ export default function CorrectionUploadPage() {
         uploadRef.current = upload
       }
       const worksheetId = await upload.worksheetId
+      if (controller.signal.aborted) return
       // 제목·학생은 서버에 필드가 없어 검토 화면에서 쓰도록 이 브라우저에 남긴다.
       saveWorksheetMeta(worksheetId, {
         title: title.trim(),
         studentName: mockStudents.find((student) => student.id === studentId)?.name ?? '',
       })
+      preparationStage = 'settings'
       await saveWorksheetSettings(
         worksheetId,
         AREAS.map(({ id: key, area }) => ({ area, level: levels[key] === 'advanced' ? 'ADVANCED' : 'STANDARD' })),
         controller.signal,
       )
+      if (controller.signal.aborted) return
+      preparationStage = 'generation_request'
       const generation = await createGeneration(worksheetId, crypto.randomUUID(), controller.signal)
-      if (!controller.signal.aborted) setGenerating({ worksheetId, generation })
+      if (!controller.signal.aborted) {
+        analytics.record('Correction Settings Applied', { ...levels })
+        setGenerating({ worksheetId, generation })
+      }
     } catch (error) {
       if (controller.signal.aborted) return
+      analytics.record('Correction Preparation Failed', { stage: preparationStage })
       setGenerating(null)
       setConfirmError(error instanceof Error ? error.message : '학습지를 올리지 못했어요. 다시 시도해 주세요.')
     }
@@ -207,10 +227,12 @@ export default function CorrectionUploadPage() {
             job={generating === 'preparing' ? null : generating}
             // shortcut: 생성 작업을 멈추는 API가 없어 화면만 2단계로 돌아가고 서버 작업은 계속된다, 취소 API가 생기면 함께 부른다.
             onCancel={() => {
+              analytics.record('Correction Generation Cancelled', { scope: 'screen' })
               confirmAbortRef.current?.abort()
               setGenerating(null)
             }}
-            onSucceeded={(worksheetId) => navigate(`/corrections/review/${worksheetId}`)}
+            onStatusChange={(status, stage) => analytics.record('Correction Generation Status Changed', { status, stage })}
+            onSucceeded={(worksheetId) => navigate(`/corrections/review/${worksheetId}`, { state: { correctionFlowId: analytics.id } })}
           />
         ) : receivingPhone ? (
           <FileDropzone className="min-w-px flex-1" uploading onFilesSelected={addFiles} onQrUploadClick={() => setQrOpen(true)} />
@@ -275,6 +297,9 @@ export default function CorrectionUploadPage() {
                     label={`${area.label} 첨삭 정도`}
                     value={levels[area.id]}
                     onValueChange={(level) => {
+                      if (level !== levels[area.id]) {
+                        analytics.record('Correction Settings Changed', { area: area.area, previous_level: levels[area.id], level })
+                      }
                       const next = { ...levels, [area.id]: level }
                       setLevels(next)
                       try {
