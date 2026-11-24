@@ -25,12 +25,12 @@ export default function EditorToolbar({ tool, kind, onChange }: EditorToolbarPro
   }
 
   return (
-    <div role="group" aria-label="표시 도구" className="flex items-stretch gap-ds-8 rounded-ds-small border border-solid border-border-weak bg-background-neutral-default px-ds-8 py-ds-4">
+    <div role="group" aria-label="표시 도구" className="flex items-stretch gap-ds-8 rounded-ds-small border border-solid border-border-neutral-weak bg-background-neutral-default px-ds-8 py-ds-4">
       {COMMENT_TOOLS.map((item, index) => {
         const active = tool === item.type
         return (
           <Fragment key={item.type}>
-            {index > 0 && <span aria-hidden="true" className="border-l border-border-weak" />}
+            {index > 0 && <span aria-hidden="true" className="border-l border-border-neutral-weak" />}
             <button
               type="button"
               aria-label={`${item.label}${active ? (kind === 'RED' ? ', 빨강' : ', 파랑') : ''}`}

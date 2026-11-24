@@ -12,7 +12,7 @@ export default function RecentCorrections({ items }: { items: readonly Correctio
         <h2 id="recent-corrections-heading" className="text-h3 text-text-neutral-muted">최근 첨삭 이력</h2>
         <Link
           to="/correction-history"
-          className="inline-flex shrink-0 items-center gap-ds-4 rounded-ds-small text-body2-regular text-text-neutral-subtle hover:text-text-neutral-muted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-border-focused"
+          className="inline-flex shrink-0 items-center gap-ds-4 rounded-ds-small text-body2-regular text-text-neutral-subtle hover:text-text-neutral-muted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-border-brand-focus"
         >
           전체 보기
           <span

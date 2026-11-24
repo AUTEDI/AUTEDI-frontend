@@ -42,7 +42,7 @@ export default function SidebarItem({
       title={title ?? (collapsed ? children : undefined)}
       className={state => [
         'group relative flex min-h-ds-24 w-full min-w-0 shrink-0 items-center font-sans text-label1-semibold',
-        'rounded-ds-small focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-border-focused',
+        'rounded-ds-small focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-border-brand-focus',
         state.isActive ? 'text-text-brand-strong' : 'text-text-neutral-subtle hover:text-text-neutral-muted',
         typeof className === 'function' ? className(state) : className,
       ].join(' ')}

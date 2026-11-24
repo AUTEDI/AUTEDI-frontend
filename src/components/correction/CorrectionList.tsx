@@ -28,7 +28,7 @@ export default function CorrectionList({
           <col className={variant === 'home' ? undefined : 'w-[12%]'} />
         </colgroup>
         <thead>
-          <tr className="h-ds-48 border-b border-border-default text-label3-semibold text-text-neutral-default">
+          <tr className="h-ds-48 border-b border-border-neutral-default text-label3-semibold text-text-neutral-default">
             {['제목', '상태', '학생', '담당 선생님', '작성일'].map((label) => (
               <th key={label} scope="col" className={variant === 'home' ? 'p-0 font-semibold' : 'p-0 py-ds-16 font-semibold'}>{label}</th>
             ))}

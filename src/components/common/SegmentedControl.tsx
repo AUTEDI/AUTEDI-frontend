@@ -49,7 +49,7 @@ export default function SegmentedControl<T extends string = string>({
       role="radiogroup"
       aria-label={label}
       aria-disabled={disabled || undefined}
-      className={`flex w-[240px] max-w-full items-center justify-center gap-ds-4 overflow-clip rounded-ds-medium border border-solid border-border-default bg-background-neutral-default p-ds-4 ${className}`}
+      className={`flex w-[240px] max-w-full items-center justify-center gap-ds-4 overflow-clip rounded-ds-medium border border-solid border-border-neutral-default bg-background-neutral-default p-ds-4 ${className}`}
     >
       {options.map(option => {
         const isSelected = option.value === selectedValue
@@ -61,7 +61,7 @@ export default function SegmentedControl<T extends string = string>({
             className={[
               'flex min-w-px flex-1 items-center justify-center overflow-clip px-ds-24 py-ds-8',
               'font-sans tracking-[var(--letter-spacing-normal)] whitespace-nowrap',
-              'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-border-focused',
+              'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-border-brand-focus',
               isSelected
                 ? 'rounded-ds-small bg-action-primary text-label2-semibold text-text-neutral-inverse'
                 : 'rounded-ds-medium bg-background-neutral-default text-label2-medium text-text-neutral-muted',

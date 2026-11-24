@@ -5,6 +5,7 @@
   --background-neutral-subtle: var(--color-gray-200);
   --background-neutral-disabled: var(--color-gray-100);
   --background-brand-weak: var(--color-blue-50);
+  --background-neutral-secondary: var(--color-gray-500);
   --background-brand-subtle: var(--color-blue-300);
   --background-brand-strong: var(--color-blue-500);
   --background-accent-error: var(--color-red-100);
@@ -16,12 +17,13 @@
   --action-pressed: var(--color-blue-700);
   --action-disabled: var(--color-gray-300);
 
-  --border-default: var(--color-gray-300);
-  --border-weak: var(--color-gray-200);
-  --border-strong: var(--color-gray-800);
-  --border-focused: var(--color-blue-400);
-  --border-error: var(--color-red-500);
-  --border-disabled: var(--color-gray-400);
+  --border-neutral-default: var(--color-gray-300);
+  --border-neutral-weak: var(--color-gray-200);
+  --border-neutral-strong: var(--color-gray-800);
+  --border-brand-focus: var(--color-blue-400);
+  --border-accent-error: var(--color-red-500);
+  --border-neutral-disabled: var(--color-gray-400);
+  --border-brand-default: var(--color-blue-500);
 
   --text-neutral-default: var(--color-gray-800);
   --text-neutral-weak: var(--color-gray-200);

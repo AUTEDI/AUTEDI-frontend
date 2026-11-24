@@ -14,7 +14,7 @@ export type FilePreviewPanelProps = {
 }
 
 const smallButton =
-  'rounded-ds-small border border-solid border-border-weak bg-background-neutral-default px-ds-12 py-ds-8 text-label3-medium whitespace-nowrap text-text-neutral-default'
+  'rounded-ds-small border border-solid border-border-neutral-weak bg-background-neutral-default px-ds-12 py-ds-8 text-label3-medium whitespace-nowrap text-text-neutral-default'
 
 /** 파일 확인 단계: 왼쪽 쪽 목록과 가운데 사진 보기 */
 export default function FilePreviewPanel({ pages, onAddFiles, onRemove, onClear, className = '' }: FilePreviewPanelProps) {
@@ -26,7 +26,7 @@ export default function FilePreviewPanel({ pages, onAddFiles, onRemove, onClear,
 
   return (
     <div className={`flex gap-ds-24 rounded-ds-large bg-background-neutral-weak p-ds-24 font-sans ${className}`}>
-      <div className="flex w-[88px] shrink-0 flex-col justify-between border-r border-solid border-border-default pr-ds-16">
+      <div className="flex w-[88px] shrink-0 flex-col justify-between border-r border-solid border-border-neutral-default pr-ds-16">
         <div className="flex min-h-0 flex-col items-center gap-ds-24 overflow-x-hidden overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <p className="text-caption text-text-neutral-default">
             {index + 1}/{pages.length}
@@ -41,7 +41,7 @@ export default function FilePreviewPanel({ pages, onAddFiles, onRemove, onClear,
                     aria-label={`${pageIndex + 1}번 사진 보기`}
                     aria-current={selected ? 'true' : undefined}
                     onClick={() => setSelectedId(page.id)}
-                    className={`block size-full overflow-hidden rounded-ds-small border border-solid ${selected ? 'border-border-strong' : 'border-border-default'}`}
+                    className={`block size-full overflow-hidden rounded-ds-small border border-solid ${selected ? 'border-border-neutral-strong' : 'border-border-neutral-default'}`}
                   >
                     <img src={page.url} alt="" className="block size-full object-cover" />
                   </button>

@@ -16,7 +16,7 @@ export default function ZoomControl({ zoom, onZoomChange }: ZoomControlProps) {
   const change = (delta: number) => onZoomChange(Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoom + delta)) * 10) / 10)
 
   return (
-    <div className="flex items-center gap-ds-8 rounded-ds-small border border-solid border-border-weak bg-background-neutral-default px-ds-12 py-ds-8">
+    <div className="flex items-center gap-ds-8 rounded-ds-small border border-solid border-border-neutral-weak bg-background-neutral-default px-ds-12 py-ds-8">
       <button type="button" aria-label="축소" disabled={zoom <= ZOOM_MIN} onClick={() => change(-ZOOM_STEP)} className="flex size-ds-16 items-center justify-center disabled:opacity-40">
         <img src={zoomOutIcon} alt="" width={13.25} height={1.25} />
       </button>

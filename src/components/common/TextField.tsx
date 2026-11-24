@@ -26,12 +26,12 @@ export type TextFieldProps = Omit<
 }
 
 const stateClasses = {
-  default: 'border-border-default bg-background-neutral-default',
-  tapped: 'border-border-default bg-background-neutral-default',
-  typing: 'border-border-default bg-background-neutral-default',
-  entered: 'border-border-focused bg-background-neutral-default',
-  error: 'border-border-error bg-background-neutral-default',
-  disabled: 'border-border-disabled bg-background-neutral-disabled',
+  default: 'border-border-neutral-default bg-background-neutral-default',
+  tapped: 'border-border-neutral-default bg-background-neutral-default',
+  typing: 'border-border-neutral-default bg-background-neutral-default',
+  entered: 'border-border-brand-focus bg-background-neutral-default',
+  error: 'border-border-accent-error bg-background-neutral-default',
+  disabled: 'border-border-neutral-disabled bg-background-neutral-disabled',
 } as const satisfies Record<TextFieldState, string>
 
 export default function TextField({
@@ -130,7 +130,7 @@ export default function TextField({
             aria-controls={inputId}
             aria-pressed={passwordVisible}
             disabled={isDisabled}
-            className="relative inline-flex size-ds-16 shrink-0 cursor-pointer items-center justify-center rounded-ds-small focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focused disabled:cursor-not-allowed disabled:opacity-40"
+            className="relative inline-flex size-ds-16 shrink-0 cursor-pointer items-center justify-center rounded-ds-small focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-brand-focus disabled:cursor-not-allowed disabled:opacity-40"
             onMouseDown={event => event.preventDefault()}
             onClick={() => setIsPasswordVisible(visible => !visible)}
           >
@@ -145,7 +145,7 @@ export default function TextField({
           <button
             type="button"
             aria-label={`${label} 지우기`}
-            className="inline-flex size-ds-16 shrink-0 cursor-pointer items-center justify-center rounded-ds-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focused"
+            className="inline-flex size-ds-16 shrink-0 cursor-pointer items-center justify-center rounded-ds-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-brand-focus"
             onMouseDown={event => event.preventDefault()}
             onClick={() => { updateValue(''); inputRef.current?.focus() }}
           >

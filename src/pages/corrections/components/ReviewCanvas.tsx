@@ -540,7 +540,7 @@ export default function ReviewCanvas({
       </div>
 
       <div className="flex min-h-px flex-1 gap-ds-16">
-        <div className="flex shrink-0 flex-col justify-between border-r border-solid border-border-default pr-ds-16">
+        <div className="flex shrink-0 flex-col justify-between border-r border-solid border-border-neutral-default pr-ds-16">
           <ol aria-label="학습지 페이지" className="flex flex-col gap-ds-20 overflow-y-auto">
             {pages.map((item, pageIndex) => {
               const selected = item.id === page.id
@@ -552,7 +552,7 @@ export default function ReviewCanvas({
                     aria-current={selected ? 'page' : undefined}
                     onClick={() => onPageChange(item.id)}
                     className={`relative block h-[72px] w-[48px] overflow-hidden rounded-ds-small border border-solid bg-background-neutral-default ${
-                      selected ? 'border-border-strong' : 'border-transparent'
+                      selected ? 'border-border-neutral-strong' : 'border-transparent'
                     }`}
                   >
                     {imageUrls[item.id] && <img src={imageUrls[item.id]} alt="" className="absolute inset-0 size-full object-cover" />}

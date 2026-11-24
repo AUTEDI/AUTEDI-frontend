@@ -9,6 +9,7 @@
   --color-background-neutral-subtle: var(--background-neutral-subtle);
   --color-background-neutral-disabled: var(--background-neutral-disabled);
   --color-background-brand-weak: var(--background-brand-weak);
+  --color-background-neutral-secondary: var(--background-neutral-secondary);
   --color-background-brand-subtle: var(--background-brand-subtle);
   --color-background-brand-strong: var(--background-brand-strong);
   --color-background-accent-error: var(--background-accent-error);
@@ -41,12 +42,13 @@
   --color-action-pressed: var(--action-pressed);
   --color-action-disabled: var(--action-disabled);
 
-  --color-border-default: var(--border-default);
-  --color-border-weak: var(--border-weak);
-  --color-border-strong: var(--border-strong);
-  --color-border-focused: var(--border-focused);
-  --color-border-error: var(--border-error);
-  --color-border-disabled: var(--border-disabled);
+  --color-border-neutral-default: var(--border-neutral-default);
+  --color-border-neutral-weak: var(--border-neutral-weak);
+  --color-border-neutral-strong: var(--border-neutral-strong);
+  --color-border-brand-focus: var(--border-brand-focus);
+  --color-border-accent-error: var(--border-accent-error);
+  --color-border-neutral-disabled: var(--border-neutral-disabled);
+  --color-border-brand-default: var(--border-brand-default);
 
   /* Expose the primitive palette with an explicit ds-* prefix. */
   --color-ds-blue-50: var(--color-blue-50);

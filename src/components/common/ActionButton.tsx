@@ -16,14 +16,14 @@ const sizeClasses = {
 
 const secondaryClasses = {
   primary:
-    'border-border-default bg-background-neutral-default text-text-neutral-default hover:bg-background-neutral-weak active:bg-background-neutral-subtle',
-  hover: 'border-border-default bg-background-neutral-weak text-text-neutral-default active:bg-background-neutral-subtle',
-  pressed: 'border-border-default bg-background-neutral-subtle text-text-neutral-default',
+    'border-border-neutral-default bg-background-neutral-default text-text-neutral-default hover:bg-background-neutral-weak active:bg-background-neutral-subtle',
+  hover: 'border-border-neutral-default bg-background-neutral-weak text-text-neutral-default active:bg-background-neutral-subtle',
+  pressed: 'border-border-neutral-default bg-background-neutral-subtle text-text-neutral-default',
   disabled: `${buttonStateClasses.disabled} ${buttonBorderClasses.disabled}`,
 } as const satisfies Record<ButtonState, string>
 
 const neutralClasses = {
-  primary: 'border-ds-gray-500 bg-ds-gray-500 text-text-neutral-inverse hover:border-ds-gray-600 hover:bg-ds-gray-600 active:bg-ds-gray-700',
+  primary: 'border-background-neutral-secondary bg-background-neutral-secondary text-text-neutral-inverse hover:border-ds-gray-600 hover:bg-ds-gray-600 active:bg-ds-gray-700',
   hover: 'border-ds-gray-600 bg-ds-gray-600 text-text-neutral-inverse active:bg-ds-gray-700',
   pressed: 'border-ds-gray-700 bg-ds-gray-700 text-text-neutral-inverse',
   disabled: secondaryClasses.disabled,

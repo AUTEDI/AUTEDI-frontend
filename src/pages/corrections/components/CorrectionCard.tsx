@@ -28,7 +28,7 @@ export default function CorrectionCard({ correction, expanded, dimmed, busy, onT
   return (
     <article
       ref={cardRef}
-      className={`flex flex-col gap-ds-20 rounded-ds-medium border border-solid border-border-default bg-background-neutral-default px-ds-16 pt-ds-12 pb-ds-16 ${
+      className={`flex flex-col gap-ds-20 rounded-ds-medium border border-solid border-border-neutral-default bg-background-neutral-default px-ds-16 pt-ds-12 pb-ds-16 ${
         dimmed ? 'opacity-60' : ''
       }`}
     >
@@ -55,7 +55,7 @@ export default function CorrectionCard({ correction, expanded, dimmed, busy, onT
       {expanded && (
         <>
           <div className="flex flex-col gap-ds-16">
-            <div className="flex flex-col gap-ds-4 rounded-ds-medium border border-solid border-border-default px-ds-16 py-ds-12">
+            <div className="flex flex-col gap-ds-4 rounded-ds-medium border border-solid border-border-neutral-default px-ds-16 py-ds-12">
               <p className="text-label3-semibold text-text-neutral-subtle">원문</p>
               <p className="text-body1-regular text-ds-gray-600">{correction.originalText}</p>
             </div>

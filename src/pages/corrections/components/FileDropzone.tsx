@@ -18,7 +18,7 @@ export type FileDropzoneProps = {
 }
 
 const failureButton =
-  'rounded-ds-small border border-solid border-border-default bg-background-neutral-default px-ds-24 py-[6px] text-label2-semibold text-text-neutral-default hover:bg-background-neutral-weak focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focused'
+  'rounded-ds-small border border-solid border-border-neutral-default bg-background-neutral-default px-ds-24 py-[6px] text-label2-semibold text-text-neutral-default hover:bg-background-neutral-weak focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-brand-focus'
 
 // 서버가 페이지 이미지로 바꿀 수 있는 사진 형식만 고르게 한다.
 const ACCEPT = 'image/jpeg,image/png'
@@ -55,7 +55,7 @@ export default function FileDropzone({
       if (files.length) onFilesSelected(files)
     },
   }
-  const dragOutline = dragging ? 'outline-2 outline-offset-[-2px] outline-dashed outline-border-focused' : ''
+  const dragOutline = dragging ? 'outline-2 outline-offset-[-2px] outline-dashed outline-border-brand-focus' : ''
 
   const iconBox = (
     <span className="flex size-[64px] items-center justify-center rounded-ds-medium bg-[var(--color-blue-100)]">
@@ -138,7 +138,7 @@ export default function FileDropzone({
           event.stopPropagation()
           openPicker()
         }}
-        className="flex flex-col items-center gap-ds-48 rounded-ds-medium focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-border-focused"
+        className="flex flex-col items-center gap-ds-48 rounded-ds-medium focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-border-brand-focus"
       >
         {iconBox}
         <span className="flex flex-col items-center gap-ds-8 text-center whitespace-nowrap">
