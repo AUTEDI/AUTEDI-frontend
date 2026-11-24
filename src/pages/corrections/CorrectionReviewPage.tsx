@@ -337,7 +337,7 @@ export default function CorrectionReviewPage() {
                   else if (!tool) setTool('UNDERLINE')
                 }}
                 className={`h-ds-48 flex-1 border-solid ${
-                  tab === item ? 'border-b-2 border-border-strong text-label2-semibold text-text-neutral-default' : 'border-b border-border-disabled text-label2-medium text-text-neutral-muted'
+                  tab === item ? 'border-b-2 border-border-neutral-strong text-label2-semibold text-text-neutral-default' : 'border-b border-border-neutral-disabled text-label2-medium text-text-neutral-muted'
                 }`}
               >
                 {item === 'ai' ? 'AI 첨삭' : '수기 첨삭'}
@@ -370,7 +370,7 @@ export default function CorrectionReviewPage() {
                 error={commentError}
               />
             ) : (
-              <div className="flex flex-col gap-ds-24">
+              <div className="flex flex-col gap-ds-16">
                 <div className="flex items-center justify-between gap-ds-12">
                   <h2 className="flex items-center gap-ds-8">
                     <span className="text-h3 text-text-neutral-default">AI 첨삭</span>
