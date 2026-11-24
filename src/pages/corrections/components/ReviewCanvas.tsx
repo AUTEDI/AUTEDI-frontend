@@ -552,7 +552,7 @@ export default function ReviewCanvas({
                     aria-current={selected ? 'page' : undefined}
                     onClick={() => onPageChange(item.id)}
                     className={`relative block h-[72px] w-[48px] overflow-hidden rounded-ds-small border border-solid bg-background-neutral-default ${
-                      selected ? 'border-border-neutral-strong' : 'border-transparent'
+                      selected ? 'border-border-neutral-strong' : 'border-transparent hover:border-border-neutral-default'
                     }`}
                   >
                     {imageUrls[item.id] && <img src={imageUrls[item.id]} alt="" className="absolute inset-0 size-full object-cover" />}

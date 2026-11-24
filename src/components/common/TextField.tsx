@@ -130,7 +130,7 @@ export default function TextField({
             aria-controls={inputId}
             aria-pressed={passwordVisible}
             disabled={isDisabled}
-            className="relative inline-flex size-ds-16 shrink-0 cursor-pointer items-center justify-center rounded-ds-small focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-brand-focus disabled:cursor-not-allowed disabled:opacity-40"
+            className="relative inline-flex size-ds-16 shrink-0 cursor-pointer items-center justify-center rounded-ds-small hover:bg-background-neutral-weak focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-brand-focus disabled:cursor-not-allowed disabled:opacity-40"
             onMouseDown={event => event.preventDefault()}
             onClick={() => setIsPasswordVisible(visible => !visible)}
           >
@@ -145,7 +145,7 @@ export default function TextField({
           <button
             type="button"
             aria-label={`${label} 지우기`}
-            className="inline-flex size-ds-16 shrink-0 cursor-pointer items-center justify-center rounded-ds-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-brand-focus"
+            className="inline-flex size-ds-16 shrink-0 cursor-pointer items-center justify-center rounded-ds-full hover:bg-background-neutral-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-brand-focus"
             onMouseDown={event => event.preventDefault()}
             onClick={() => { updateValue(''); inputRef.current?.focus() }}
           >

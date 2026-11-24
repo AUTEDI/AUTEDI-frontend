@@ -361,7 +361,7 @@ export default function CorrectionReviewPage() {
                   else if (!tool) setTool('UNDERLINE')
                 }}
                 className={`h-ds-48 flex-1 border-solid ${
-                  tab === item ? 'border-b-2 border-border-neutral-strong text-label2-semibold text-text-neutral-default' : 'border-b border-border-neutral-disabled text-label2-medium text-text-neutral-muted'
+                  tab === item ? 'border-b-2 border-border-neutral-strong text-label2-semibold text-text-neutral-default' : 'border-b border-border-neutral-disabled text-label2-medium text-text-neutral-muted hover:text-text-neutral-default'
                 }`}
               >
                 {item === 'ai' ? 'AI 첨삭' : '수기 첨삭'}
