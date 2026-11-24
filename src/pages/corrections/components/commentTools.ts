@@ -16,8 +16,8 @@ export type CommentTool = (typeof COMMENT_TOOLS)[number]['type']
 
 /** 첨삭 유형: 오류는 빨강, 개선은 파랑으로 표시한다. */
 export const COMMENT_KINDS = [
-  { color: 'RED', label: '오류' },
-  { color: 'BLUE', label: '개선' },
+  { color: 'RED', label: '오류 수정' },
+  { color: 'BLUE', label: '개선 제안' },
 ] as const satisfies readonly { color: CommentColor; label: string }[]
 
 export type CommentKind = (typeof COMMENT_KINDS)[number]['color']

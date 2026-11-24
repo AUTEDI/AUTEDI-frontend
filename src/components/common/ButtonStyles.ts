@@ -1,7 +1,7 @@
 export type ButtonState = 'primary' | 'hover' | 'pressed' | 'disabled'
 
 export const buttonBaseClasses =
-  'inline-flex shrink-0 items-center justify-center whitespace-nowrap font-sans focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focused'
+  'inline-flex shrink-0 items-center justify-center whitespace-nowrap font-sans focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-brand-focus'
 
 export const buttonStateClasses = {
   primary:
@@ -15,5 +15,5 @@ export const buttonBorderClasses = {
   primary: 'border-action-primary hover:border-action-hover active:border-action-pressed',
   hover: 'border-action-hover active:border-action-pressed',
   pressed: 'border-action-pressed',
-  disabled: 'border-border-disabled',
+  disabled: 'border-border-neutral-disabled',
 } as const satisfies Record<ButtonState, string>

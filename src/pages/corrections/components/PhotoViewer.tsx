@@ -41,7 +41,7 @@ export default function PhotoViewer({ src, alt, onPrev, onNext }: PhotoViewerPro
   }
 
   const arrow = 'flex h-[43px] w-[29px] items-center justify-center rounded-ds-small bg-background-neutral-subtle disabled:invisible'
-  const control = 'flex items-center rounded-ds-small border border-solid border-border-weak bg-background-neutral-default'
+  const control = 'flex items-center rounded-ds-small border border-solid border-border-neutral-weak bg-background-neutral-default'
 
   return (
     <div className="flex min-w-px flex-1 flex-col justify-between">
@@ -76,7 +76,7 @@ export default function PhotoViewer({ src, alt, onPrev, onNext }: PhotoViewerPro
           <button type="button" aria-label="오른쪽으로 90도 회전" onClick={() => setRotation((value) => (value + 90) % 360)} className="flex h-full items-center px-ds-12">
             <img src={rotateIcon} alt="" width={16} height={16} />
           </button>
-          <span aria-hidden="true" className="h-[14px] border-l border-border-weak" />
+          <span aria-hidden="true" className="h-[14px] border-l border-border-neutral-weak" />
           <button type="button" aria-label="좌우 반전" aria-pressed={flipped} onClick={() => setFlipped((value) => !value)} className="flex h-full items-center px-ds-12">
             <img src={flipIcon} alt="" width={16} height={16} />
           </button>

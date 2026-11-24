@@ -16,7 +16,7 @@ export default function GNB({
     <header
       {...props}
       aria-label={ariaLabel}
-      className={`sticky top-0 z-20 flex h-ds-60 w-full shrink-0 items-center justify-end border-b border-solid border-border-weak bg-background-neutral-default px-ds-32 font-sans ${className}`}
+      className={`sticky top-0 z-20 flex h-ds-60 w-full shrink-0 items-center justify-end border-b border-solid border-border-neutral-weak bg-background-neutral-default px-ds-32 font-sans ${className}`}
     >
       <div className="flex min-w-0 max-w-full items-center gap-ds-8">
         <span aria-hidden="true" className="size-ds-24 shrink-0 rounded-ds-full bg-background-brand-subtle" />

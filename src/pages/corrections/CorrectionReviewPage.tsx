@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useLocation, useNavigate, useParams } from 'react-router'
 import {
   createComment,
   deleteComment,
@@ -24,6 +24,8 @@ import ManualCommentPanel from './components/ManualCommentPanel'
 import ReviewCanvas, { type NotePosition } from './components/ReviewCanvas'
 import { loadWorksheetMeta } from '../../utils/worksheetMeta'
 import { buildPdf, downloadPdf, preloadPdfLibraries } from './exportPdf'
+import { trackEvent } from '../../analytics/client'
+import { createCorrectionFlow, flowIdFromState } from '../../analytics/correctionFlow'
 
 const errorMessage = (error: unknown, fallback: string) => (error instanceof Error ? error.message : fallback)
 
@@ -31,6 +33,8 @@ const errorMessage = (error: unknown, fallback: string) => (error instanceof Err
 export default function CorrectionReviewPage() {
   const worksheetId = Number(useParams().worksheetId)
   const navigate = useNavigate()
+  const location = useLocation()
+  const [analytics] = useState(() => createCorrectionFlow(trackEvent, flowIdFromState(location.state)))
   // 업로드 때 고른 제목·학생(이 브라우저에 저장됨). 제목이 없으면 파일 이름을 쓴다.
   const [meta] = useState(() => loadWorksheetMeta(worksheetId))
   const [completeOpen, setCompleteOpen] = useState(false)
@@ -73,6 +77,7 @@ export default function CorrectionReviewPage() {
     getReview(worksheetId)
       .then((loaded) => {
         if (!active) return
+        analytics.view('review')
         setReview(loaded)
         setPageId(loaded.pages[0].id)
         // 페이지 사진은 각각 받아 오는 대로 보여준다.
@@ -88,13 +93,16 @@ export default function CorrectionReviewPage() {
         })
       })
       .catch((error: unknown) => {
-        if (active) setLoadError(errorMessage(error, '첨삭 결과를 불러오지 못했어요.'))
+        if (active) {
+          analytics.record('Correction Review Load Failed')
+          setLoadError(errorMessage(error, '첨삭 결과를 불러오지 못했어요.'))
+        }
       })
     return () => {
       active = false
       urls.forEach((url) => URL.revokeObjectURL(url))
     }
-  }, [worksheetId, validId])
+  }, [worksheetId, validId, analytics])
 
   const replace = (next: Correction) =>
     setReview((prev) => prev && { ...prev, corrections: prev.corrections.map((item) => (item.id === next.id ? next : item)) })
@@ -167,7 +175,8 @@ export default function CorrectionReviewPage() {
 
   // 도구를 켜면 수기 첨삭 탭으로 넘어가고, 골라 둔 영역의 모양도 그 도구로 바꾼다. null이면 손 모드로 돌아간다.
   // 도구 막대는 색(빨강·파랑)도 함께 넘겨, 첨삭 유형도 그 색으로 맞춘다.
-  const changeTool = (next: CommentTool | null, nextKind?: CommentKind) => {
+  const changeTool = (next: CommentTool | null, nextKind?: CommentKind, source: 'toolbar' | 'panel' = 'toolbar') => {
+    analytics.manual('tool_selected', { source, tab, next_tab: next ? 'manual' : tab, tool: next, kind: nextKind ?? kind })
     setTool(next)
     if (nextKind) setKind(nextKind)
     if (!next) return
@@ -179,7 +188,16 @@ export default function CorrectionReviewPage() {
     runComment(async () => {
       if (!draft) return
       const { region } = draft
-      const saved = await createComment(worksheetId, { pageId: region.pageId, highlightType: draft.tool, color: kind, regions: [region], content })
+      const context = { source: 'panel' as const, tab, tool: draft.tool, kind }
+      analytics.manual('save_requested', context)
+      let saved: TeacherComment
+      try {
+        saved = await createComment(worksheetId, { pageId: region.pageId, highlightType: draft.tool, color: kind, regions: [region], content })
+      } catch (error) {
+        analytics.manual('save_failed', context)
+        throw error
+      }
+      analytics.manual('saved', context)
       setReview((prev) => prev && { ...prev, comments: [...prev.comments, saved] })
       setDraft(null)
       // 다 쓴 도구는 끄고 손 모드로 돌아간다.
@@ -264,6 +282,7 @@ export default function CorrectionReviewPage() {
   const startPdf = () => setPdf({ status: 'building' })
   const savePdf = () => {
     if (!review) return
+    analytics.record('Correction PDF Download Requested')
     if (pdf.status === 'ready') {
       downloadPdf(pdf.blob, meta.title || review.fileName)
       return
@@ -316,7 +335,11 @@ export default function CorrectionReviewPage() {
           onToolChange={changeTool}
           kind={kind}
           draft={draft}
-          onDraw={(region) => tool && setDraft({ region, tool })}
+          onDraw={(region) => {
+            if (!tool) return
+            analytics.manual('region_selected', { source: 'canvas', tab, tool, kind })
+            setDraft({ region, tool })
+          }}
           notePositions={notePositions}
           onNoteMove={(key, position) => setNotePositions((prev) => ({ ...prev, [key]: position }))}
         />
@@ -330,6 +353,7 @@ export default function CorrectionReviewPage() {
                 role="tab"
                 aria-selected={tab === item}
                 onClick={() => {
+                  analytics.manual('tab_selected', { source: 'tabs', tab, next_tab: item, tool, kind })
                   setTab(item)
                   // AI 첨삭 탭으로 가면 표시 도구를 끈다.
                   if (item === 'ai') setTool(null)
@@ -337,7 +361,7 @@ export default function CorrectionReviewPage() {
                   else if (!tool) setTool('UNDERLINE')
                 }}
                 className={`h-ds-48 flex-1 border-solid ${
-                  tab === item ? 'border-b-2 border-border-strong text-label2-semibold text-text-neutral-default' : 'border-b border-border-disabled text-label2-medium text-text-neutral-muted'
+                  tab === item ? 'border-b-2 border-border-neutral-strong text-label2-semibold text-text-neutral-default' : 'border-b border-border-neutral-disabled text-label2-medium text-text-neutral-muted'
                 }`}
               >
                 {item === 'ai' ? 'AI 첨삭' : '수기 첨삭'}
@@ -350,12 +374,16 @@ export default function CorrectionReviewPage() {
             {tab === 'manual' ? (
               <ManualCommentPanel
                 tool={tool}
-                onToolChange={changeTool}
+                onToolChange={(next) => changeTool(next, undefined, 'panel')}
                 kind={kind}
-                onKindChange={setKind}
+                onKindChange={(next) => {
+                  analytics.manual('kind_selected', { source: 'panel', tab, tool, kind: next })
+                  setKind(next)
+                }}
                 hasRegion={draft !== null}
                 onSave={saveComment}
                 onCancel={() => {
+                  analytics.manual('cancelled', { source: 'panel', tab, tool, kind })
                   setDraft(null)
                   setCommentError('')
                 }}
@@ -370,7 +398,7 @@ export default function CorrectionReviewPage() {
                 error={commentError}
               />
             ) : (
-              <div className="flex flex-col gap-ds-24">
+              <div className="flex flex-col gap-ds-16">
                 <div className="flex items-center justify-between gap-ds-12">
                   <h2 className="flex items-center gap-ds-8">
                     <span className="text-h3 text-text-neutral-default">AI 첨삭</span>
@@ -415,13 +443,18 @@ export default function CorrectionReviewPage() {
 
           <div className="flex shrink-0 justify-end gap-ds-8 pt-ds-12">
             {/* shortcut: 임시 저장 API가 없다(첨삭 반영·삭제·수기 첨삭은 누를 때마다 이미 저장됨), 그래서 홈으로 나가기만 한다. 임시 저장 상태 API가 생기면 함께 부른다. */}
-            <ActionButton size="md" variant="secondary" onClick={() => navigate('/main')}>
+            <ActionButton size="md" variant="secondary" onClick={() => {
+              analytics.record('Correction Review Left', { reason: 'temporary_save_button' })
+              navigate('/main')
+            }}>
               임시 저장
             </ActionButton>
             {/* shortcut: 첨삭 완료 API가 없어 완료 안내만 띄운다, 완료 처리 API가 생기면 성공한 뒤 띄운다. */}
             <ActionButton
               size="md"
               onClick={() => {
+                // 현재 완료 API가 없어 모달을 연 시점을 기록하며, 서버 저장 완료로 간주하지 않는다.
+                analytics.view('completion_shown')
                 setCompleteOpen(true)
                 // 모달을 보는 동안 PDF를 미리 만든다. 다시 누르면 그 사이 바뀐 첨삭으로 새로 만든다.
                 wantPdfRef.current = false

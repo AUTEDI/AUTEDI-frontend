@@ -17,13 +17,13 @@ export default function Stepper({ current, className = '' }: StepperProps) {
           const active = index + 1 === current
           return (
             <Fragment key={step}>
-              {index > 0 && <span className="h-0 min-w-px flex-1 border-t border-dashed border-border-default" />}
+              {index > 0 && <span className="h-0 min-w-px flex-1 border-t border-dashed border-border-neutral-default" />}
               <span
-                className={`flex shrink-0 rounded-ds-full p-ds-4 ${active ? 'bg-[var(--opacity-bluebrand-a20)]' : 'bg-background-neutral-weak'}`}
+                className={`flex shrink-0 rounded-ds-full p-ds-4 ${active ? 'bg-ds-gray-300' : 'bg-background-neutral-weak'}`}
               >
                 <span
                   className={`flex size-[28px] items-center justify-center rounded-ds-full text-text-neutral-inverse ${
-                    active ? 'bg-background-brand-strong text-label3-semibold' : 'bg-background-neutral-subtle text-label3-medium'
+                    active ? 'bg-ds-gray-400 text-label3-semibold' : 'bg-background-neutral-subtle text-label3-medium'
                   }`}
                 >
                   {index + 1}
@@ -42,7 +42,7 @@ export default function Stepper({ current, className = '' }: StepperProps) {
               aria-current={active ? 'step' : undefined}
               // 라벨 칸은 동그라미(36px) 폭에 맞추고 글자는 양옆으로 넘치게 둬서 동그라미 가운데에 맞춘다.
               className={`flex w-[36px] justify-center whitespace-nowrap ${
-                active ? 'text-label3-semibold text-text-brand-strong' : 'text-label3-medium text-text-neutral-muted'
+                active ? 'text-label3-semibold text-ds-gray-700' : 'text-label3-medium text-text-neutral-muted'
               }`}
             >
               {step}

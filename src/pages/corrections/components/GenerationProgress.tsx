@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { subscribeEvents } from '../../../apis/events'
-import { getGeneration, retryGeneration, type Generation } from '../../../apis/generations'
+import { getGeneration, retryGeneration, type Generation, type GenerationStage, type GenerationStatus } from '../../../apis/generations'
 import checkStrongIcon from '../../../assets/design-system/icon-check-strong.svg'
 import checkSubtleIcon from '../../../assets/design-system/icon-check-subtle.svg'
 import ActionButton from '../../../components/common/ActionButton'
 import GeneratingCharacter from './GeneratingCharacter'
 
-const STEPS = ['이미지 인식', 'AI 첨삭 생성', '첨삭 완료'] as const
+const STEPS = ['이미지 인식', 'AI 첨삭 생성', '첨삭 생성 완료'] as const
 // SSE가 재연결 사이에 이벤트를 놓칠 수 있어, 이벤트가 없어도 이 간격으로 상태를 다시 확인한다.
 const POLL_MS = 3000
 
@@ -25,11 +25,12 @@ export type GenerationProgressProps = {
   onCancel: () => void
   /** 생성이 끝나면 부른다. 검토 화면으로 넘어간다. */
   onSucceeded: (worksheetId: number) => void
+  onStatusChange?: (status: GenerationStatus, stage: GenerationStage) => void
   className?: string
 }
 
 /** AI 첨삭 3단계: 생성 작업의 진행 상황을 보여준다. */
-export default function GenerationProgress({ job, onCancel, onSucceeded, className = '' }: GenerationProgressProps) {
+export default function GenerationProgress({ job, onCancel, onSucceeded, onStatusChange, className = '' }: GenerationProgressProps) {
   const worksheetId = job?.worksheetId
   const [generation, setGeneration] = useState(job?.generation ?? null)
   const [retrying, setRetrying] = useState(false)
@@ -39,9 +40,19 @@ export default function GenerationProgress({ job, onCancel, onSucceeded, classNa
   const finished = status === 'SUCCEEDED' || status === 'FAILED'
 
   const onSucceededRef = useRef(onSucceeded)
+  const onStatusChangeRef = useRef(onStatusChange)
+  const reportedStatus = useRef('')
   useEffect(() => {
     onSucceededRef.current = onSucceeded
+    onStatusChangeRef.current = onStatusChange
   })
+  useEffect(() => {
+    if (!generation) return
+    const key = `${generation.id}-${generation.status}-${generation.stage}`
+    if (reportedStatus.current === key) return
+    reportedStatus.current = key
+    onStatusChangeRef.current?.(generation.status, generation.stage)
+  }, [generation])
   useEffect(() => {
     if (status === 'SUCCEEDED' && worksheetId !== undefined) onSucceededRef.current(worksheetId)
   }, [status, worksheetId])
@@ -93,7 +104,7 @@ export default function GenerationProgress({ job, onCancel, onSucceeded, classNa
       <div className="flex flex-col items-center gap-ds-24">
         <GeneratingCharacter animated={!finished} />
 
-        <div className="flex flex-col items-center gap-ds-32">
+        <div className="flex flex-col items-center gap-ds-40">
           <div role="status" aria-live="polite" className="flex flex-col items-center gap-ds-8 text-center">
             <p className="text-h3 text-text-neutral-default">{title}</p>
             {message && <p className="text-body2-regular text-text-accent-red">{message}</p>}

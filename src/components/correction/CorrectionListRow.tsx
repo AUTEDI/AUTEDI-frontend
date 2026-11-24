@@ -23,7 +23,7 @@ function PersonCell({ person }: { person: CorrectionPerson }) {
 
 export default function CorrectionListRow({ correction }: { correction: Correction }) {
   return (
-    <tr className="h-ds-60 border-b border-border-weak text-caption text-text-neutral-muted">
+    <tr className="h-ds-60 border-b border-border-neutral-weak text-caption text-text-neutral-muted">
       <td className="p-0 pr-ds-12 text-body2-medium text-text-neutral-default">
         <span className="block truncate" title={correction.title}>{correction.title}</span>
       </td>

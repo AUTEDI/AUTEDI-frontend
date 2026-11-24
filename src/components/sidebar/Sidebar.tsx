@@ -2,7 +2,6 @@ import { useId, useState, type ComponentPropsWithRef } from 'react'
 import { Link, type To } from 'react-router'
 import logo from '../../assets/design-system/sidebar-logo.svg'
 import toggleIcon from '../../assets/design-system/sidebar-toggle.svg'
-import helpIcon from '../../assets/design-system/sidebar-help.svg'
 import SidebarItem from './SidebarItem'
 import { sidebarItems, type SidebarMenuItem } from './sidebarItems'
 
@@ -12,13 +11,12 @@ export type SidebarProps = Omit<ComponentPropsWithRef<'aside'>, 'children'> & {
   defaultCollapsed?: boolean
   onCollapsedChange?: (collapsed: boolean) => void
   logoTo?: To
-  helpTo?: To
   onLogout?: () => void
   isLoggingOut?: boolean
   logoutError?: string
 }
 
-const focusClasses = 'rounded-ds-small focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-border-focused'
+const focusClasses = 'rounded-ds-small focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-border-brand-focus'
 const labelTransitionClasses = 'pointer-events-none absolute inset-y-0 left-ds-32 flex items-center whitespace-nowrap transition-opacity duration-200 ease-out motion-reduce:transition-none'
 
 export default function Sidebar({
@@ -27,7 +25,6 @@ export default function Sidebar({
   defaultCollapsed = false,
   onCollapsedChange,
   logoTo = '/main',
-  helpTo = '/help',
   onLogout,
   isLoggingOut = false,
   logoutError = '',
@@ -112,19 +109,6 @@ export default function Sidebar({
             {logoutError}
           </p>
         )}
-        <Link
-          to={helpTo}
-          title={isCollapsed ? '도움말' : undefined}
-          className={[
-            'relative mt-ds-16 inline-flex min-h-ds-24 w-full shrink-0 items-center overflow-hidden text-label2-semibold text-text-neutral-subtle',
-            focusClasses,
-          ].join(' ')}
-        >
-          <span aria-hidden="true" className="inline-flex size-ds-24 shrink-0 items-center justify-center">
-            <img src={helpIcon} alt="" width="16" height="16" />
-          </span>
-          <span className={`${labelTransitionClasses} ${isCollapsed ? 'opacity-0' : 'opacity-100'}`}>도움말</span>
-        </Link>
       </div>
     </aside>
   )

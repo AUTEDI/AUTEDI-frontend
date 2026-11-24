@@ -59,7 +59,7 @@ export default function ManualCommentPanel({
         <h2 className="text-h3 text-text-neutral-default">수기 첨삭 추가</h2>
 
         <form
-          className="flex flex-col gap-ds-24 rounded-ds-medium border border-solid border-border-default bg-background-neutral-default p-ds-16"
+          className="flex flex-col gap-ds-24 rounded-ds-medium border border-solid border-border-neutral-default bg-background-neutral-default p-ds-16"
           onSubmit={async (event) => {
             event.preventDefault()
             if (await onSave(content.trim())) setContent('')
@@ -69,11 +69,19 @@ export default function ManualCommentPanel({
             <div className="flex flex-col gap-ds-8">
               <div className={row}>
                 <span aria-hidden="true" className={rowLabel}>도구</span>
-                {/* shortcut: 공통 Select에 아이콘 옵션이 없어 글자만 보인다, Select가 아이콘을 지원하면 도구 아이콘을 붙인다. */}
-                <Select
+                  <Select
                   label="도구"
+                  compact
                   className="!w-[120px]"
-                  options={COMMENT_TOOLS.map((item) => ({ value: item.type, label: item.label }))}
+                  options={COMMENT_TOOLS.map((item) => ({
+                    value: item.type,
+                    label: item.label,
+                    icon: (
+                      <span className="flex size-ds-16 shrink-0 items-center justify-center">
+                        <img src={item.icon} alt="" width={item.size[0]} height={item.size[1]} className={item.type === 'CARET' ? '-scale-y-100' : ''} />
+                      </span>
+                    ),
+                  }))}
                   // 도구가 꺼져 있어도 기본 도구인 밑줄을 보여준다. 고르면 그 도구가 켜진다.
                   value={tool ?? 'UNDERLINE'}
                   onValueChange={(value) => onToolChange(value as CommentTool)}
@@ -83,8 +91,22 @@ export default function ManualCommentPanel({
                 <span aria-hidden="true" className={rowLabel}>첨삭 유형</span>
                 <Select
                   label="첨삭 유형"
+                  compact
                   className="!w-[120px]"
-                  options={COMMENT_KINDS.map((item) => ({ value: item.color, label: item.label }))}
+                  options={COMMENT_KINDS.map((item) => ({
+                    value: item.color,
+                    label: item.label,
+                    tone: toneOf(item.color),
+                    icon: (
+                      <span className="flex size-ds-16 shrink-0 items-center justify-center">
+                        {item.color === 'RED' ? (
+                          <img src={correctionIcon} alt="" width={13.2} height={12} />
+                        ) : (
+                          <img src={suggestionIcon} alt="" width={16} height={16} />
+                        )}
+                      </span>
+                    ),
+                  }))}
                   value={kind}
                   onValueChange={(value) => onKindChange(value as CommentKind)}
                 />
@@ -92,7 +114,7 @@ export default function ManualCommentPanel({
             </div>
             <div className="flex flex-col gap-ds-16">
               <label htmlFor="manual-comment" className={rowLabel}>수정 제안</label>
-              <div className="flex h-[91px] flex-col justify-between rounded-ds-medium border border-solid border-border-default px-ds-12 py-ds-8 focus-within:outline-2 focus-within:outline-border-focused">
+              <div className="flex h-[91px] flex-col justify-between rounded-ds-medium border border-solid border-border-neutral-default px-ds-12 py-ds-8 focus-within:outline-2 focus-within:outline-border-brand-focus">
                 <textarea
                   id="manual-comment"
                   value={content}
@@ -136,14 +158,14 @@ export default function ManualCommentPanel({
         {comments.length === 0 ? (
           <p className="text-body2-regular text-text-neutral-subtle">아직 저장된 수기 첨삭이 없어요.</p>
         ) : (
-          <ul className="flex flex-col gap-ds-16">
+          <ul className="flex flex-col gap-ds-10">
             {comments.map((comment) => {
               const selected = comment.id === selectedCommentId
               return (
-                <li key={comment.id} ref={selected ? selectedRef : undefined} className="flex flex-col gap-ds-12 rounded-ds-medium border border-solid border-border-default bg-background-neutral-default px-ds-16 py-ds-12">
+                <li key={comment.id} ref={selected ? selectedRef : undefined} className="flex flex-col gap-ds-12 rounded-ds-medium border border-solid border-border-neutral-default bg-background-neutral-default px-ds-16 py-ds-12">
                   <button type="button" aria-expanded={selected} onClick={() => onSelectComment(comment.id)} className="flex w-full items-center justify-between gap-ds-12 text-left">
                     <span className="flex min-w-px items-center gap-ds-12">
-                      <span className={`flex shrink-0 items-center gap-ds-4 rounded-ds-small border border-solid border-current px-ds-12 py-ds-4 text-label2-semibold ${toneOf(comment.color)}`}>
+                      <span className={`flex shrink-0 items-center gap-ds-4 rounded-ds-small border border-solid border-current px-ds-8 py-ds-4 text-label2-semibold ${toneOf(comment.color)}`}>
                         <span className="flex size-ds-16 items-center justify-center">
                           {comment.color === 'RED' ? (
                             <img src={correctionIcon} alt="" width={13.2} height={12} />

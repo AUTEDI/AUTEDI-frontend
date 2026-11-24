@@ -11,7 +11,7 @@ import { useAuthStore } from '../../../stores/useAuthStore'
 
 type FieldErrors = { email?: string; password?: string }
 
-const fieldClasses = '[&_input]:font-medium [&>div]:rounded-ds-small [&>div:focus-within]:outline-2 [&>div:focus-within]:outline-offset-2 [&>div:focus-within]:outline-border-focused'
+const fieldClasses = '[&_input]:font-medium [&>div]:rounded-ds-small [&>div:focus-within]:outline-2 [&>div:focus-within]:outline-offset-2 [&>div:focus-within]:outline-border-brand-focus'
 
 export default function LoginForm() {
   const navigate = useNavigate()
@@ -136,7 +136,7 @@ export default function LoginForm() {
                 }}
                 className="peer sr-only"
               />
-              <img src={rememberEmail ? checkedIcon : uncheckedIcon} alt="" className="rounded-[2px] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-border-focused" />
+              <img src={rememberEmail ? checkedIcon : uncheckedIcon} alt="" className="rounded-[2px] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-border-brand-focus" />
             </span>
             아이디 저장
           </label>
@@ -152,7 +152,7 @@ export default function LoginForm() {
 
       <p className="text-center text-caption text-text-neutral-subtle">
         로그인에 문제가 있으신가요?{' '}
-        <a href={`mailto:${LOGIN_SUPPORT.email}`} className="underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-focused">운영팀에 문의해주세요.</a>
+        <a href={`mailto:${LOGIN_SUPPORT.email}`} className="underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-brand-focus">운영팀에 문의해주세요.</a>
       </p>
     </div>
   )
