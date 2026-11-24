@@ -6,7 +6,7 @@ import checkSubtleIcon from '../../../assets/design-system/icon-check-subtle.svg
 import ActionButton from '../../../components/common/ActionButton'
 import GeneratingCharacter from './GeneratingCharacter'
 
-const STEPS = ['이미지 인식', 'AI 첨삭 생성', '첨삭 완료'] as const
+const STEPS = ['이미지 인식', 'AI 첨삭 생성', '첨삭 생성 완료'] as const
 // SSE가 재연결 사이에 이벤트를 놓칠 수 있어, 이벤트가 없어도 이 간격으로 상태를 다시 확인한다.
 const POLL_MS = 3000
 
@@ -93,7 +93,7 @@ export default function GenerationProgress({ job, onCancel, onSucceeded, classNa
       <div className="flex flex-col items-center gap-ds-24">
         <GeneratingCharacter animated={!finished} />
 
-        <div className="flex flex-col items-center gap-ds-32">
+        <div className="flex flex-col items-center gap-ds-40">
           <div role="status" aria-live="polite" className="flex flex-col items-center gap-ds-8 text-center">
             <p className="text-h3 text-text-neutral-default">{title}</p>
             {message && <p className="text-body2-regular text-text-accent-red">{message}</p>}
