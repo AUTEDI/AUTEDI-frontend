@@ -53,8 +53,8 @@ export default function CorrectionReviewPage() {
   const [imageUrls, setImageUrls] = useState<Record<number, string>>({})
   // 사진을 못 받은 페이지. 사진 자리에 에러와 다시 시도 버튼을 보여준다.
   const [imageErrors, setImageErrors] = useState<Record<number, string>>({})
-  // 받은 사진 주소. 화면을 떠날 때 한 번에 해제한다.
-  const imageUrlsRef = useRef<string[]>([])
+  // 받은 사진 주소. 화면을 떠날 때 한 번에 해제한다. 떠난 뒤(null)에 도착한 주소는 바로 해제한다.
+  const imageUrlsRef = useRef<string[] | null>([])
   const [pageId, setPageId] = useState<number | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [busyId, setBusyId] = useState<number | null>(null)
@@ -87,8 +87,7 @@ export default function CorrectionReviewPage() {
         loaded.pages.forEach((page) => {
           loadPageImage(worksheetId, page, loaded.pages.length)
             .then((url) => {
-              imageUrlsRef.current.push(url)
-              if (active) setImageUrls((prev) => ({ ...prev, [page.id]: url }))
+              if (keepImageUrl(url) && active) setImageUrls((prev) => ({ ...prev, [page.id]: url }))
             })
             .catch((error: unknown) => {
               if (active) setImageErrors((prev) => ({ ...prev, [page.id]: errorMessage(error, '학습지 사진을 불러오지 못했어요.') }))
@@ -106,12 +105,24 @@ export default function CorrectionReviewPage() {
     }
   }, [worksheetId, validId, analytics])
 
-  useEffect(
-    () => () => {
-      imageUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
-    },
-    [],
-  )
+  useEffect(() => {
+    const urls: string[] = []
+    imageUrlsRef.current = urls
+    return () => {
+      imageUrlsRef.current = null
+      urls.forEach((url) => URL.revokeObjectURL(url))
+    }
+  }, [])
+
+  /** 받은 사진 주소를 보관한다. 이미 화면을 떠났으면 해제하고 false를 돌려준다. */
+  const keepImageUrl = (url: string) => {
+    if (!imageUrlsRef.current) {
+      URL.revokeObjectURL(url)
+      return false
+    }
+    imageUrlsRef.current.push(url)
+    return true
+  }
 
   // 못 받은 사진을 다시 받는다.
   const retryImage = (pageId: number) => {
@@ -124,10 +135,11 @@ export default function CorrectionReviewPage() {
     })
     loadPageImage(worksheetId, page, review.pages.length)
       .then((url) => {
-        imageUrlsRef.current.push(url)
-        setImageUrls((prev) => ({ ...prev, [pageId]: url }))
+        if (keepImageUrl(url)) setImageUrls((prev) => ({ ...prev, [pageId]: url }))
       })
-      .catch((error: unknown) => setImageErrors((prev) => ({ ...prev, [pageId]: errorMessage(error, '학습지 사진을 불러오지 못했어요.') })))
+      .catch((error: unknown) => {
+        if (imageUrlsRef.current) setImageErrors((prev) => ({ ...prev, [pageId]: errorMessage(error, '학습지 사진을 불러오지 못했어요.') }))
+      })
   }
 
   const replace = (next: Correction) =>

@@ -1,3 +1,4 @@
+import { ApiError } from '../../apis/client'
 import { getPageImageUrl, type ReviewPage } from '../../apis/review'
 import { getWorksheetFile } from '../../apis/worksheets'
 
@@ -6,17 +7,25 @@ import { getWorksheetFile } from '../../apis/worksheets'
 const uploadedFiles = new Map<number, readonly File[]>()
 
 export function rememberUploadedFiles(worksheetId: number, files: readonly File[]) {
+  // 방금 올린 학습지 하나만 둔다. 학습지를 계속 처리해도 파일이 쌓이지 않고, 지운 건 서버에서 받는다.
+  uploadedFiles.clear()
   uploadedFiles.set(worksheetId, files)
 }
 
 // 원본과 보정 PNG의 픽셀 크기가 이만큼(px) 안에서 같으면 같은 방향·크기로 본다.
 const SIZE_TOLERANCE = 2
 
-/** 사진이 페이지(보정 PNG)와 방향·크기가 같은지. 좌표(0~1)를 그대로 쓰려면 같아야 한다. 브라우저는 EXIF 회전을 적용해 크기를 잰다. */
-async function matchesPage(url: string, page: ReviewPage) {
+/** 사진 주소를 실제로 그릴 수 있는지 확인한다. 깨진 파일이면 거부된다. */
+async function decodeImage(url: string) {
   const image = new Image()
   image.src = url
   await image.decode()
+  return image
+}
+
+/** 사진이 페이지(보정 PNG)와 방향·크기가 같은지. 좌표(0~1)를 그대로 쓰려면 같아야 한다. 브라우저는 EXIF 회전을 적용해 크기를 잰다. */
+async function matchesPage(url: string, page: ReviewPage) {
+  const image = await decodeImage(url)
   return Math.abs(image.naturalWidth - page.width) <= SIZE_TOLERANCE && Math.abs(image.naturalHeight - page.height) <= SIZE_TOLERANCE
 }
 
@@ -42,5 +51,13 @@ export async function loadPageImage(worksheetId: number, page: ReviewPage, pageC
     }
     if (url) URL.revokeObjectURL(url)
   }
-  return getPageImageUrl(worksheetId, page.pageNumber)
+  // 보정 PNG도 깨져서 오면(200인데 손상) 성공으로 넘기지 않고 에러로 알려 다시 시도할 수 있게 한다.
+  const url = await getPageImageUrl(worksheetId, page.pageNumber)
+  try {
+    await decodeImage(url)
+    return url
+  } catch (error) {
+    URL.revokeObjectURL(url)
+    throw new ApiError('학습지 사진을 불러오지 못했어요.', { cause: error })
+  }
 }

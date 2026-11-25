@@ -41,7 +41,9 @@ function toGeneration(result: unknown): Generation {
     stage: stage as GenerationStage,
     error: error
       ? {
-          message: (typeof error.code === 'string' && FAILURE_MESSAGES[error.code]) || UNKNOWN_FAILURE_MESSAGE,
+          // 자기 속성만 본다. '__proto__' 같은 상속 이름이 오면 객체가 나와 화면이 깨진다.
+          message:
+            typeof error.code === 'string' && Object.hasOwn(FAILURE_MESSAGES, error.code) ? FAILURE_MESSAGES[error.code] : UNKNOWN_FAILURE_MESSAGE,
           retryable: error.retryable === true,
         }
       : null,
