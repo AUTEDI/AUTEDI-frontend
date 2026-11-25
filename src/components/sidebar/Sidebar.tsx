@@ -56,7 +56,7 @@ export default function Sidebar({
       ].join(' ')}
     >
       <div className={`flex h-ds-60 shrink-0 items-center ${isCollapsed ? 'px-[22px]' : 'px-ds-24'}`}>
-        <Link to={logoTo} aria-label="AUTEDI 홈으로 이동" title={isCollapsed ? 'AUTEDI' : undefined} className={`relative inline-flex w-full min-w-0 items-center overflow-hidden ${focusClasses}`}>
+        <Link to={logoTo} aria-label="AUTEDI 홈으로 이동" title={isCollapsed ? 'AUTEDI' : undefined} className={`relative inline-flex w-full min-w-0 items-center overflow-hidden hover:opacity-80 ${focusClasses}`}>
           <img src={logo} alt="" width="28" height="28" className="shrink-0" />
           <span aria-hidden="true" className={`font-brand text-[22px] leading-[1.5] font-extrabold text-text-brand-strong ${labelTransitionClasses} ${isCollapsed ? 'opacity-0' : 'opacity-100'}`}>AUTEDI</span>
         </Link>
@@ -68,7 +68,7 @@ export default function Sidebar({
           title={toggleLabel}
           aria-expanded={!isCollapsed}
           aria-controls={navigationId}
-          className={`inline-flex size-ds-24 shrink-0 cursor-pointer items-center justify-center ${focusClasses}`}
+          className={`inline-flex size-ds-24 shrink-0 cursor-pointer items-center justify-center hover:bg-background-neutral-subtle ${focusClasses}`}
           onClick={toggleCollapsed}
         >
           <img src={toggleIcon} alt="" width="19.6" height="15.1" className="max-w-none" />

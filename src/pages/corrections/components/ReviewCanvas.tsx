@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import type { Correction, HighlightType, Region, ReviewPage, TeacherComment } from '../../../apis/review'
+import ActionButton from '../../../components/common/ActionButton'
 import { toneOf, type CommentKind, type CommentTool } from './commentTools'
 import { areaOf } from './correctionAreas'
 import EditorToolbar from './EditorToolbar'
@@ -252,6 +253,9 @@ export type ReviewCanvasProps = {
   pages: readonly ReviewPage[]
   /** 페이지 ID별 이미지 주소. 아직 받는 중이면 없다. */
   imageUrls: Readonly<Record<number, string>>
+  /** 페이지 ID별 사진 불러오기 실패 문구 */
+  imageErrors: Readonly<Record<number, string>>
+  onRetryImage: (pageId: number) => void
   pageId: number
   onPageChange: (pageId: number) => void
   corrections: readonly Correction[]
@@ -281,6 +285,8 @@ export default function ReviewCanvas({
   student,
   pages,
   imageUrls,
+  imageErrors,
+  onRetryImage,
   pageId,
   onPageChange,
   corrections,
@@ -552,7 +558,7 @@ export default function ReviewCanvas({
                     aria-current={selected ? 'page' : undefined}
                     onClick={() => onPageChange(item.id)}
                     className={`relative block h-[72px] w-[48px] overflow-hidden rounded-ds-small border border-solid bg-background-neutral-default ${
-                      selected ? 'border-border-neutral-strong' : 'border-transparent'
+                      selected ? 'border-border-neutral-strong' : 'border-transparent hover:border-border-neutral-default'
                     }`}
                   >
                     {imageUrls[item.id] && <img src={imageUrls[item.id]} alt="" className="absolute inset-0 size-full object-cover" />}
@@ -641,6 +647,18 @@ export default function ReviewCanvas({
             {imageUrls[page.id] ? (
               <img src={imageUrls[page.id]} alt={`${index + 1}쪽 학습지 사진`} draggable={false}
                 onLoad={(event) => setLoadedSrc(event.currentTarget.src)} className="absolute inset-0 size-full rounded-ds-small select-none" />
+            ) : imageErrors[page.id] ? (
+              // 못 받았으면 "불러오는 중"에 멈추지 않고 이유와 다시 시도 버튼을 보여준다.
+              <div
+                role="alert"
+                className="absolute inset-0 flex flex-col items-center justify-center gap-ds-12 rounded-ds-small bg-background-neutral-subtle px-ds-16 text-center"
+                onPointerDown={(event) => event.stopPropagation()}
+              >
+                <p className="text-body2-regular text-text-neutral-muted">{imageErrors[page.id]}</p>
+                <ActionButton size="sm" variant="secondary" onClick={() => onRetryImage(page.id)}>
+                  다시 시도
+                </ActionButton>
+              </div>
             ) : (
               <div role="status" className="absolute inset-0 grid place-items-center rounded-ds-small bg-background-neutral-subtle text-body2-regular text-text-neutral-muted">
                 사진을 불러오고 있어요...

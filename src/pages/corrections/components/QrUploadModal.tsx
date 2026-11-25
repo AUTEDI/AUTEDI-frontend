@@ -121,7 +121,7 @@ function QrSessionView({ onRefresh, onUploaded }: { onRefresh: () => void; onUpl
         </div>
         {waiting && <p className="text-h3 text-text-neutral-muted">남은 시간 {formatTime(remainingSeconds)}</p>}
       </div>
-      <button type="button" onClick={onRefresh} className="flex items-center gap-ds-4 text-body1-medium text-text-neutral-subtle">
+      <button type="button" onClick={onRefresh} className="flex items-center gap-ds-4 text-body1-medium text-text-neutral-subtle hover:text-text-neutral-muted">
         새로고침
         <img src={reloadIcon} alt="" width={16} height={16} />
       </button>

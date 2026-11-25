@@ -129,7 +129,7 @@ export default function FileDropzone({
     <div
       onClick={openPicker}
       {...dropTarget}
-      className={`group/upload flex cursor-pointer flex-col items-center justify-center gap-ds-48 overflow-clip rounded-ds-large bg-background-brand-weak px-ds-24 py-[36px] font-sans hover:bg-ds-blue-100 ${dragOutline} ${className}`}
+      className={`group/upload flex cursor-pointer flex-col items-center justify-center gap-ds-48 overflow-clip rounded-ds-large bg-background-brand-weak transition-colors px-ds-24 py-[36px] font-sans hover:bg-ds-blue-100 ${dragOutline} ${className}`}
     >
       {fileInput}
       <button
@@ -152,7 +152,7 @@ export default function FileDropzone({
           event.stopPropagation()
           onQrUploadClick()
         }}
-        className="text-body2-regular text-text-neutral-muted underline"
+        className="text-body2-regular text-text-neutral-muted underline hover:text-text-neutral-default"
       >
         QR을 통해 모바일로 업로드
       </button>

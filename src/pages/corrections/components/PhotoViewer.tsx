@@ -40,7 +40,7 @@ export default function PhotoViewer({ src, alt, onPrev, onNext }: PhotoViewerPro
     transform: `translate(-50%, -50%) rotate(${rotation}deg) scaleX(${flipped ? -1 : 1})`,
   }
 
-  const arrow = 'flex h-[43px] w-[29px] items-center justify-center rounded-ds-small bg-background-neutral-subtle disabled:invisible'
+  const arrow = 'flex h-[43px] w-[29px] items-center justify-center rounded-ds-small bg-background-neutral-subtle hover:bg-ds-gray-300 disabled:invisible'
   const control = 'flex items-center rounded-ds-small border border-solid border-border-neutral-weak bg-background-neutral-default'
 
   return (
@@ -73,11 +73,11 @@ export default function PhotoViewer({ src, alt, onPrev, onNext }: PhotoViewerPro
       <div className="flex items-center justify-end gap-ds-8">
         <ZoomControl zoom={zoom} onZoomChange={setZoom} />
         <div className={`${control} h-[34px]`}>
-          <button type="button" aria-label="오른쪽으로 90도 회전" onClick={() => setRotation((value) => (value + 90) % 360)} className="flex h-full items-center px-ds-12">
+          <button type="button" aria-label="오른쪽으로 90도 회전" onClick={() => setRotation((value) => (value + 90) % 360)} className="flex h-full items-center px-ds-12 hover:bg-background-neutral-weak">
             <img src={rotateIcon} alt="" width={16} height={16} />
           </button>
           <span aria-hidden="true" className="h-[14px] border-l border-border-neutral-weak" />
-          <button type="button" aria-label="좌우 반전" aria-pressed={flipped} onClick={() => setFlipped((value) => !value)} className="flex h-full items-center px-ds-12">
+          <button type="button" aria-label="좌우 반전" aria-pressed={flipped} onClick={() => setFlipped((value) => !value)} className="flex h-full items-center px-ds-12 hover:bg-background-neutral-weak">
             <img src={flipIcon} alt="" width={16} height={16} />
           </button>
         </div>

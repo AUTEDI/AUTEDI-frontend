@@ -3,6 +3,7 @@ import { subscribeEvents } from '../../../apis/events'
 import { getGeneration, retryGeneration, type Generation, type GenerationStage, type GenerationStatus } from '../../../apis/generations'
 import checkStrongIcon from '../../../assets/design-system/icon-check-strong.svg'
 import checkSubtleIcon from '../../../assets/design-system/icon-check-subtle.svg'
+import warningIcon from '../../../assets/design-system/icon-warning.svg'
 import ActionButton from '../../../components/common/ActionButton'
 import GeneratingCharacter from './GeneratingCharacter'
 
@@ -93,9 +94,40 @@ export default function GenerationProgress({ job, onCancel, onSucceeded, onStatu
   }
 
   const reached = reachedSteps(generation)
-  const title =
-    status === 'FAILED' ? 'AI 첨삭을 만들지 못했어요' : status === 'SUCCEEDED' ? 'AI 첨삭을 완료했어요' : 'AI 첨삭을 생성하고 있어요...'
-  const message = status === 'FAILED' ? (retryError || generation?.error?.message) : retryError
+
+  if (status === 'FAILED') {
+    return (
+      <div
+        className={`flex flex-col items-center justify-center overflow-clip rounded-ds-large bg-background-brand-weak px-ds-24 py-[36px] font-sans ${className}`}
+      >
+        <div className="flex flex-col items-center gap-ds-24">
+          <span aria-hidden="true" className="flex size-[64px] items-center justify-center rounded-ds-medium bg-background-accent-error">
+            <img src={warningIcon} alt="" width={43.449} height={35.4} />
+          </span>
+          <div className="flex flex-col items-center gap-ds-32">
+            <div role="alert" className="flex flex-col items-center gap-ds-8 text-center">
+              <p className="text-h3 text-text-neutral-default">첨삭에 실패했어요</p>
+              {/* 실패 이유: 다시 시도가 실패했으면 그 이유, 아니면 서버가 알려준 이유 */}
+              <p className="text-body2-regular text-text-neutral-muted">{retryError || generation?.error?.message}</p>
+            </div>
+            <div className="flex gap-ds-12">
+              <ActionButton size="md" variant="secondary" onClick={onCancel}>
+                취소
+              </ActionButton>
+              {/* 서버가 다시 해도 소용없다고 한 실패(retryable=false)는 재시도를 두지 않는다. */}
+              {generation?.error?.retryable && (
+                <ActionButton size="md" variant="secondary" disabled={retrying} onClick={retry}>
+                  재시도
+                </ActionButton>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const title = status === 'SUCCEEDED' ? 'AI 첨삭을 완료했어요' : 'AI 첨삭을 생성하고 있어요...'
 
   return (
     <div
@@ -107,7 +139,7 @@ export default function GenerationProgress({ job, onCancel, onSucceeded, onStatu
         <div className="flex flex-col items-center gap-ds-40">
           <div role="status" aria-live="polite" className="flex flex-col items-center gap-ds-8 text-center">
             <p className="text-h3 text-text-neutral-default">{title}</p>
-            {message && <p className="text-body2-regular text-text-accent-red">{message}</p>}
+            {retryError && <p className="text-body2-regular text-text-accent-red">{retryError}</p>}
           </div>
 
           <ol aria-label="첨삭 생성 단계" className="flex gap-ds-16">
@@ -133,24 +165,11 @@ export default function GenerationProgress({ job, onCancel, onSucceeded, onStatu
             })}
           </ol>
 
-          {status === 'FAILED' ? (
-            <div className="flex gap-ds-8">
-              <ActionButton size="md" variant="secondary" onClick={onCancel}>
-                취소
-              </ActionButton>
-              {generation?.error?.retryable && (
-                <ActionButton size="md" disabled={retrying} onClick={retry}>
-                  다시 시도
-                </ActionButton>
-              )}
-            </div>
-          ) : (
-            // 완료되면 곧바로 검토 화면으로 넘어가므로 버튼을 두지 않는다.
-            status !== 'SUCCEEDED' && (
-              <ActionButton size="md" variant="secondary" onClick={onCancel}>
-                취소
-              </ActionButton>
-            )
+          {/* 완료되면 곧바로 검토 화면으로 넘어가므로 버튼을 두지 않는다. */}
+          {status !== 'SUCCEEDED' && (
+            <ActionButton size="md" variant="secondary" onClick={onCancel}>
+              취소
+            </ActionButton>
           )}
         </div>
       </div>

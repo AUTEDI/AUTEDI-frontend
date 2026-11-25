@@ -4,7 +4,6 @@ import {
   createComment,
   deleteComment,
   deleteCorrection,
-  getPageImageUrl,
   getReview,
   moveCorrection,
   setCorrectionApplied,
@@ -24,6 +23,7 @@ import ManualCommentPanel from './components/ManualCommentPanel'
 import ReviewCanvas, { type NotePosition } from './components/ReviewCanvas'
 import { loadWorksheetMeta } from '../../utils/worksheetMeta'
 import { buildPdf, downloadPdf, preloadPdfLibraries } from './exportPdf'
+import { loadPageImage } from './pageImages'
 import { trackEvent } from '../../analytics/client'
 import { createCorrectionFlow, flowIdFromState } from '../../analytics/correctionFlow'
 
@@ -51,6 +51,10 @@ export default function CorrectionReviewPage() {
   const [review, setReview] = useState<Review | null>(null)
   const [loadError, setLoadError] = useState('')
   const [imageUrls, setImageUrls] = useState<Record<number, string>>({})
+  // 사진을 못 받은 페이지. 사진 자리에 에러와 다시 시도 버튼을 보여준다.
+  const [imageErrors, setImageErrors] = useState<Record<number, string>>({})
+  // 받은 사진 주소. 화면을 떠날 때 한 번에 해제한다. 떠난 뒤(null)에 도착한 주소는 바로 해제한다.
+  const imageUrlsRef = useRef<string[] | null>([])
   const [pageId, setPageId] = useState<number | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [busyId, setBusyId] = useState<number | null>(null)
@@ -73,22 +77,20 @@ export default function CorrectionReviewPage() {
   useEffect(() => {
     if (!validId) return
     let active = true
-    const urls: string[] = []
     getReview(worksheetId)
       .then((loaded) => {
         if (!active) return
         analytics.view('review')
         setReview(loaded)
         setPageId(loaded.pages[0].id)
-        // 페이지 사진은 각각 받아 오는 대로 보여준다.
+        // 페이지 사진은 각각 받아 오는 대로 보여준다. 하나를 못 받아도 첨삭 목록은 볼 수 있다.
         loaded.pages.forEach((page) => {
-          getPageImageUrl(worksheetId, page.pageNumber)
+          loadPageImage(worksheetId, page, loaded.pages.length)
             .then((url) => {
-              urls.push(url)
-              if (active) setImageUrls((prev) => ({ ...prev, [page.id]: url }))
+              if (keepImageUrl(url) && active) setImageUrls((prev) => ({ ...prev, [page.id]: url }))
             })
-            .catch(() => {
-              // 사진 하나를 못 받아도 첨삭 목록은 볼 수 있게 둔다.
+            .catch((error: unknown) => {
+              if (active) setImageErrors((prev) => ({ ...prev, [page.id]: errorMessage(error, '학습지 사진을 불러오지 못했어요.') }))
             })
         })
       })
@@ -100,9 +102,45 @@ export default function CorrectionReviewPage() {
       })
     return () => {
       active = false
-      urls.forEach((url) => URL.revokeObjectURL(url))
     }
   }, [worksheetId, validId, analytics])
+
+  useEffect(() => {
+    const urls: string[] = []
+    imageUrlsRef.current = urls
+    return () => {
+      imageUrlsRef.current = null
+      urls.forEach((url) => URL.revokeObjectURL(url))
+    }
+  }, [])
+
+  /** 받은 사진 주소를 보관한다. 이미 화면을 떠났으면 해제하고 false를 돌려준다. */
+  const keepImageUrl = (url: string) => {
+    if (!imageUrlsRef.current) {
+      URL.revokeObjectURL(url)
+      return false
+    }
+    imageUrlsRef.current.push(url)
+    return true
+  }
+
+  // 못 받은 사진을 다시 받는다.
+  const retryImage = (pageId: number) => {
+    const page = review?.pages.find((item) => item.id === pageId)
+    if (!review || !page) return
+    setImageErrors((prev) => {
+      const next = { ...prev }
+      delete next[pageId]
+      return next
+    })
+    loadPageImage(worksheetId, page, review.pages.length)
+      .then((url) => {
+        if (keepImageUrl(url)) setImageUrls((prev) => ({ ...prev, [pageId]: url }))
+      })
+      .catch((error: unknown) => {
+        if (imageUrlsRef.current) setImageErrors((prev) => ({ ...prev, [pageId]: errorMessage(error, '학습지 사진을 불러오지 못했어요.') }))
+      })
+  }
 
   const replace = (next: Correction) =>
     setReview((prev) => prev && { ...prev, corrections: prev.corrections.map((item) => (item.id === next.id ? next : item)) })
@@ -312,6 +350,8 @@ export default function CorrectionReviewPage() {
           student={meta.studentName}
           pages={review.pages}
           imageUrls={imageUrls}
+          imageErrors={imageErrors}
+          onRetryImage={retryImage}
           pageId={pageId}
           onPageChange={setPageId}
           corrections={review.corrections}
@@ -361,7 +401,7 @@ export default function CorrectionReviewPage() {
                   else if (!tool) setTool('UNDERLINE')
                 }}
                 className={`h-ds-48 flex-1 border-solid ${
-                  tab === item ? 'border-b-2 border-border-neutral-strong text-label2-semibold text-text-neutral-default' : 'border-b border-border-neutral-disabled text-label2-medium text-text-neutral-muted'
+                  tab === item ? 'border-b-2 border-border-neutral-strong text-label2-semibold text-text-neutral-default' : 'border-b border-border-neutral-disabled text-label2-medium text-text-neutral-muted hover:text-text-neutral-default'
                 }`}
               >
                 {item === 'ai' ? 'AI 첨삭' : '수기 첨삭'}
@@ -489,6 +529,8 @@ export default function CorrectionReviewPage() {
           student={meta.studentName}
                 pages={review.pages}
                 imageUrls={imageUrls}
+                imageErrors={{}}
+                onRetryImage={() => {}}
                 pageId={item.id}
                 onPageChange={() => {}}
                 corrections={review.corrections}

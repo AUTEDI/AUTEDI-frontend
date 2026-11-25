@@ -188,7 +188,7 @@ export default function Select({
             : 'flex h-ds-40 w-full items-center justify-between gap-ds-10 rounded-ds-medium border border-solid px-ds-12 py-ds-10 text-left font-sans text-label2-semibold',
           'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-brand-focus',
           disabled ? 'cursor-not-allowed border-border-neutral-disabled bg-background-neutral-disabled text-text-neutral-subtle'
-            : `cursor-pointer bg-background-neutral-default ${error ? 'border-border-accent-error' : 'border-border-neutral-default'} ${selectedOption && !isLoading ? (selectedOption.tone ?? 'text-text-neutral-default') : 'text-text-neutral-subtle'}`,
+            : `cursor-pointer bg-background-neutral-default hover:bg-background-neutral-weak ${error ? 'border-border-accent-error' : 'border-border-neutral-default'} ${selectedOption && !isLoading ? (selectedOption.tone ?? 'text-text-neutral-default') : 'text-text-neutral-subtle'}`,
         ].join(' ')}
         onClick={() => {
           triggerRef.current?.focus()

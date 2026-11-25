@@ -6,6 +6,7 @@ import ActionButton from '../../components/common/ActionButton'
 import { mockStudents } from '../../mocks/students'
 import { photoError } from '../../utils/photo'
 import { saveWorksheetMeta } from '../../utils/worksheetMeta'
+import { rememberUploadedFiles } from './pageImages'
 import SegmentedControl from '../../components/common/SegmentedControl'
 import Select from '../../components/common/Select'
 import TextField from '../../components/common/TextField'
@@ -175,6 +176,7 @@ export default function CorrectionUploadPage() {
         uploadRef.current = upload
       }
       const worksheetId = await upload.worksheetId
+      rememberUploadedFiles(worksheetId, upload.pages.map((page) => page.file))
       if (controller.signal.aborted) return
       // 제목·학생은 서버에 필드가 없어 검토 화면에서 쓰도록 이 브라우저에 남긴다.
       saveWorksheetMeta(worksheetId, {
