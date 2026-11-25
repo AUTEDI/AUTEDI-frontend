@@ -2,6 +2,8 @@ import { useEffect, useId, useImperativeHandle, useRef, useState, type Component
 import downArrow from '../../assets/design-system/3d6ad.svg'
 import upArrow from '../../assets/design-system/efa4e.svg'
 import checkIcon from '../../assets/design-system/63428.svg'
+import filterChevron from '../../assets/design-system/filter-chevron.svg'
+import filterCheck from '../../assets/design-system/filter-check.svg'
 
 export type SelectOption = {
   value: string
@@ -30,6 +32,8 @@ export type SelectProps = Omit<
   error?: string
   /** 디자인 시스템의 Dropdown(작은 크기, 아이콘 옵션) 모양으로 그린다. */
   compact?: boolean
+  /** 목록 상단 필터: 내용에 맞춘 42px 버튼과 가운데 정렬한 160px 메뉴. */
+  variant?: 'default' | 'filter'
 }
 
 export default function Select({
@@ -45,6 +49,7 @@ export default function Select({
   emptyMessage = '등록된 학생이 없어요.',
   error,
   compact = false,
+  variant = 'default',
   id,
   name,
   form,
@@ -75,6 +80,8 @@ export default function Select({
     ?? availableOptions[0]
   const activeIndex = availableOptions.findIndex(option => option === activeOption)
   const isOpen = open && !disabled
+  const isFilter = variant === 'filter'
+  const displayLabel = isFilter && !currentValue ? placeholder : selectedOption?.label ?? placeholder
   const statusMessage = isLoading ? loadingMessage : error || (options.length === 0 ? emptyMessage : undefined)
   const activeId = isOpen && activeOption ? `${listId}-${options.indexOf(activeOption)}` : undefined
 
@@ -155,7 +162,7 @@ export default function Select({
   }
 
   return (
-    <div ref={rootRef} className={`relative flex w-[240px] max-w-full flex-col gap-ds-4 ${className}`}>
+    <div ref={rootRef} className={`relative flex max-w-full flex-col gap-ds-4 ${isFilter ? 'w-fit shrink-0' : 'w-[240px]'} ${className}`}>
       <label htmlFor={triggerId} className={showLabel ? 'text-label2-medium' : 'sr-only'}>{label}</label>
       {name && <input type="hidden" name={name} form={form} value={selectedOption?.value ?? ''} disabled={disabled} />}
       <button
@@ -174,14 +181,20 @@ export default function Select({
         aria-invalid={error ? true : ariaInvalid}
         aria-describedby={[describedBy, statusMessage ? messageId : undefined].filter(Boolean).join(' ') || undefined}
         className={[
-          compact
+          isFilter
+            ? 'flex h-[42px] w-full items-center justify-between gap-ds-8 rounded-ds-small border border-solid px-ds-16 py-ds-10 text-left font-sans text-label2-semibold'
+            : compact
             ? 'flex w-full items-center justify-between gap-ds-4 rounded-ds-small border border-solid p-ds-8 text-left font-sans text-label2-semibold'
             : 'flex h-ds-40 w-full items-center justify-between gap-ds-10 rounded-ds-medium border border-solid px-ds-12 py-ds-10 text-left font-sans text-label2-semibold',
           'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border-brand-focus',
           disabled ? 'cursor-not-allowed border-border-neutral-disabled bg-background-neutral-disabled text-text-neutral-subtle'
             : `cursor-pointer bg-background-neutral-default ${error ? 'border-border-accent-error' : 'border-border-neutral-default'} ${selectedOption && !isLoading ? (selectedOption.tone ?? 'text-text-neutral-default') : 'text-text-neutral-subtle'}`,
         ].join(' ')}
-        onClick={() => { if (isOpen) setOpen(false); else openList() }}
+        onClick={() => {
+          triggerRef.current?.focus()
+          if (isOpen) setOpen(false)
+          else openList()
+        }}
         onKeyDown={handleKeyDown}
         onBlur={event => {
           if (!event.currentTarget.parentElement?.contains(event.relatedTarget)) setOpen(false)
@@ -190,14 +203,14 @@ export default function Select({
       >
         <span className="flex min-w-px items-center gap-ds-4">
           {!isLoading && selectedOption?.icon}
-          <span className="truncate">{isLoading ? loadingMessage : selectedOption?.label ?? placeholder}</span>
+          <span className="truncate">{isLoading ? loadingMessage : displayLabel}</span>
         </span>
-        <span aria-hidden="true" className="relative flex h-[5px] w-[10px] shrink-0 items-center justify-center">
-          <img src={isOpen ? upArrow : downArrow} alt="" className={isOpen ? 'max-w-none -rotate-90' : 'max-w-none rotate-90 -scale-y-100'} />
+        <span aria-hidden="true" className={`relative flex shrink-0 items-center justify-center ${isFilter ? 'size-ds-16' : 'h-[5px] w-[10px]'}`}>
+          <img src={isFilter ? filterChevron : isOpen ? upArrow : downArrow} alt="" className={isFilter ? `max-w-none ${isOpen ? '-scale-y-100' : ''}` : isOpen ? 'max-w-none -rotate-90' : 'max-w-none rotate-90 -scale-y-100'} />
         </span>
       </button>
       {isOpen && (
-        <div className={`absolute inset-x-0 top-full z-10 mt-ds-8 overflow-hidden border border-solid border-border-neutral-weak bg-background-neutral-default ${compact ? 'rounded-ds-small' : 'rounded-ds-medium'}`}>
+        <div className={`absolute top-full z-10 mt-ds-8 overflow-hidden border border-solid border-border-neutral-weak bg-background-neutral-default ${isFilter ? 'left-1/2 w-[160px] -translate-x-1/2 rounded-ds-medium' : `inset-x-0 ${compact ? 'rounded-ds-small' : 'rounded-ds-medium'}`}`}>
           <ul id={listId} role="listbox" aria-label={label} aria-busy={isLoading || undefined} className="max-h-[218px] overflow-y-auto">
             {!statusMessage && options.map((option, index) => {
               const selected = option.value === currentValue
@@ -210,13 +223,13 @@ export default function Select({
                   aria-selected={selected}
                   aria-disabled={option.disabled || undefined}
                   className={[
-                    compact
+                    compact && !isFilter
                       ? 'flex items-center justify-between gap-ds-4 p-ds-8 font-sans text-label2-semibold'
                       : 'flex min-h-ds-36 items-center justify-between gap-ds-10 px-ds-12 py-ds-10 font-sans text-label3-medium',
                     option.disabled ? 'cursor-not-allowed text-text-neutral-subtle'
-                      : compact
+                      : compact || isFilter
                         // Dropdown: 고른·가리킨 항목은 회색 배경, 누르는 동안은 더 진한 회색. 글자색은 옵션마다 다를 수 있다.
-                        ? `${selected || active ? 'bg-background-neutral-weak' : 'bg-background-neutral-default'} cursor-pointer active:bg-background-neutral-subtle ${option.tone ?? 'text-text-neutral-default'}`
+                        ? `${selected || active ? 'bg-background-neutral-weak' : 'bg-background-neutral-default'} cursor-pointer active:bg-background-neutral-subtle ${option.tone ?? (isFilter && !selected ? 'text-text-neutral-muted' : 'text-text-neutral-default')}`
                         : `${selected || active ? 'bg-background-brand-weak' : 'bg-background-neutral-default'} cursor-pointer ${selected ? 'text-text-neutral-default' : 'text-text-neutral-muted'}`,
                   ].join(' ')}
                   onPointerMove={() => { if (!option.disabled) setActiveValue(option.value) }}
@@ -227,7 +240,9 @@ export default function Select({
                     {option.icon}
                     <span className="truncate">{option.label}</span>
                   </span>
-                  {selected && <img src={checkIcon} width="10" height="8" alt="" className="shrink-0" />}
+                  {selected && (isFilter ? (
+                    <span className="flex size-ds-16 shrink-0 items-center justify-center"><img src={filterCheck} alt="" className="max-w-none" /></span>
+                  ) : <img src={checkIcon} width="10" height="8" alt="" className="shrink-0" />)}
                 </li>
               )
             })}

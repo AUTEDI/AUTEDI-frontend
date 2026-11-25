@@ -5,7 +5,7 @@ export type CorrectionListProps = {
   items: readonly Correction[]
   caption?: string
   emptyMessage?: string
-  variant?: 'default' | 'home'
+  variant?: 'default' | 'home' | 'history'
 }
 
 export default function CorrectionList({
@@ -30,7 +30,7 @@ export default function CorrectionList({
         <thead>
           <tr className="h-ds-48 border-b border-border-neutral-default text-label3-semibold text-text-neutral-default">
             {['제목', '상태', '학생', '담당 선생님', '작성일'].map((label) => (
-              <th key={label} scope="col" className={variant === 'home' ? 'p-0 font-semibold' : 'p-0 py-ds-16 font-semibold'}>{label}</th>
+              <th key={label} scope="col" className={variant === 'default' ? 'p-0 py-ds-16 font-semibold' : 'p-0 font-semibold'}>{label}</th>
             ))}
           </tr>
         </thead>
@@ -38,7 +38,7 @@ export default function CorrectionList({
           {items.length > 0 ? items.map((correction) => (
             <CorrectionListRow key={correction.id} correction={correction} />
           )) : (
-            <tr className={variant === 'home' ? 'h-[180px]' : 'h-ds-60'}>
+            <tr className={variant === 'default' ? 'h-ds-60' : 'h-[180px]'}>
               <td colSpan={5} className="p-0 text-center text-body2-regular text-text-neutral-subtle">
                 {emptyMessage}
               </td>
