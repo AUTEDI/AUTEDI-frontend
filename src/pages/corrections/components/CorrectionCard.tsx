@@ -30,7 +30,7 @@ export default function CorrectionCard({ correction, expanded, dimmed, busy, onT
       ref={cardRef}
       className={`flex flex-col gap-ds-20 rounded-ds-medium border border-solid border-border-neutral-default bg-background-neutral-default px-ds-16 pt-ds-12 pb-ds-16 ${
         dimmed ? 'opacity-60' : ''
-      }`}
+      } ${expanded ? '' : 'transition-colors hover:bg-background-neutral-weak'}`}
     >
       <button type="button" aria-expanded={expanded} onClick={onToggle} className="flex w-full items-center gap-ds-16 text-left">
         <span

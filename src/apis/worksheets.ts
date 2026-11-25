@@ -60,10 +60,11 @@ export async function getWorksheetFile(worksheetId: number): Promise<File> {
     const { data } = await apiClient.get<Blob>(`/api/v1/worksheets/${worksheetId}/file`, {
       headers: authHeader(),
       responseType: 'blob',
+      timeout: UPLOAD_TIMEOUT_MS,
     })
     return new File([data], `worksheet-${worksheetId}.${data.type === 'image/png' ? 'png' : 'jpg'}`, { type: data.type })
   } catch (error) {
-    throw new ApiError('휴대폰에서 올린 사진을 불러오지 못했어요.', { cause: error })
+    throw new ApiError('학습지 사진을 불러오지 못했어요.', { cause: error })
   }
 }
 

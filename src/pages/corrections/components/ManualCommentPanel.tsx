@@ -163,7 +163,7 @@ export default function ManualCommentPanel({
               const selected = comment.id === selectedCommentId
               return (
                 <li key={comment.id} ref={selected ? selectedRef : undefined} className="flex flex-col gap-ds-12 rounded-ds-medium border border-solid border-border-neutral-default bg-background-neutral-default px-ds-16 py-ds-12">
-                  <button type="button" aria-expanded={selected} onClick={() => onSelectComment(comment.id)} className="flex w-full items-center justify-between gap-ds-12 text-left">
+                  <button type="button" aria-expanded={selected} onClick={() => onSelectComment(comment.id)} className="flex w-full items-center justify-between gap-ds-12 rounded-ds-small text-left hover:opacity-70">
                     <span className="flex min-w-px items-center gap-ds-12">
                       <span className={`flex shrink-0 items-center gap-ds-4 rounded-ds-small border border-solid border-current px-ds-8 py-ds-4 text-label2-semibold ${toneOf(comment.color)}`}>
                         <span className="flex size-ds-16 items-center justify-center">

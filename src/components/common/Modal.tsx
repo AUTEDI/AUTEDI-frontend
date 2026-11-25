@@ -34,7 +34,7 @@ export default function Modal({ open, onClose, labelledBy, children }: ModalProp
       className="m-auto w-[520px] max-w-[calc(100vw-32px)] overflow-clip rounded-ds-large bg-background-neutral-default p-0 font-sans backdrop:bg-black/40"
     >
       <div className="flex justify-end px-ds-24 pt-ds-24 pb-ds-12">
-        <button type="button" aria-label="닫기" onClick={onClose} className="flex size-ds-24 items-center justify-center">
+        <button type="button" aria-label="닫기" onClick={onClose} className="flex size-ds-24 items-center justify-center rounded-[4px] hover:bg-background-neutral-weak">
           <img src={closeIcon} alt="" width={15.1} height={15.1} />
         </button>
       </div>

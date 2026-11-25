@@ -17,11 +17,11 @@ export default function ZoomControl({ zoom, onZoomChange }: ZoomControlProps) {
 
   return (
     <div className="flex items-center gap-ds-8 rounded-ds-small border border-solid border-border-neutral-weak bg-background-neutral-default px-ds-12 py-ds-8">
-      <button type="button" aria-label="축소" disabled={zoom <= ZOOM_MIN} onClick={() => change(-ZOOM_STEP)} className="flex size-ds-16 items-center justify-center disabled:opacity-40">
+      <button type="button" aria-label="축소" disabled={zoom <= ZOOM_MIN} onClick={() => change(-ZOOM_STEP)} className="flex size-ds-16 items-center justify-center rounded-[4px] hover:bg-background-neutral-weak disabled:opacity-40">
         <img src={zoomOutIcon} alt="" width={13.25} height={1.25} />
       </button>
       <span className="min-w-[32px] pl-ds-4 text-center text-label3-medium text-text-neutral-default">{Math.round(zoom * 100)}%</span>
-      <button type="button" aria-label="확대" disabled={zoom >= ZOOM_MAX} onClick={() => change(ZOOM_STEP)} className="flex size-ds-16 items-center justify-center disabled:opacity-40">
+      <button type="button" aria-label="확대" disabled={zoom >= ZOOM_MAX} onClick={() => change(ZOOM_STEP)} className="flex size-ds-16 items-center justify-center rounded-[4px] hover:bg-background-neutral-weak disabled:opacity-40">
         <img src={zoomInIcon} alt="" width={11.25} height={11.25} />
       </button>
     </div>
