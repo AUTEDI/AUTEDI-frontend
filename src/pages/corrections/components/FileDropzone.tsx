@@ -58,7 +58,7 @@ export default function FileDropzone({
   const dragOutline = dragging ? 'outline-2 outline-offset-[-2px] outline-dashed outline-border-brand-focus' : ''
 
   const iconBox = (
-    <span className="flex size-[64px] items-center justify-center rounded-ds-medium bg-[var(--color-blue-100)]">
+    <span className="flex size-[64px] items-center justify-center rounded-ds-medium bg-ds-blue-100 group-hover/upload:bg-icon-brand-muted">
       <img src={uploadIcon} alt="" width={48} height={48} />
     </span>
   )
@@ -129,7 +129,7 @@ export default function FileDropzone({
     <div
       onClick={openPicker}
       {...dropTarget}
-      className={`flex cursor-pointer flex-col items-center justify-center gap-ds-48 overflow-clip rounded-ds-large bg-background-brand-weak transition-colors hover:bg-[var(--color-blue-100)] px-ds-24 py-[36px] font-sans ${dragOutline} ${className}`}
+      className={`group/upload flex cursor-pointer flex-col items-center justify-center gap-ds-48 overflow-clip rounded-ds-large bg-background-brand-weak px-ds-24 py-[36px] font-sans transition-colors hover:bg-ds-blue-100 ${dragOutline} ${className}`}
     >
       {fileInput}
       <button
