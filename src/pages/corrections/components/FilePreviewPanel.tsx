@@ -14,7 +14,7 @@ export type FilePreviewPanelProps = {
 }
 
 const smallButton =
-  'rounded-ds-small border border-solid border-border-neutral-weak bg-background-neutral-default px-ds-12 py-ds-8 text-label3-medium whitespace-nowrap text-text-neutral-default'
+  'rounded-ds-small border border-solid border-border-neutral-weak bg-background-neutral-default px-ds-12 py-ds-8 text-label3-medium whitespace-nowrap text-text-neutral-default hover:bg-background-neutral-weak'
 
 /** 파일 확인 단계: 왼쪽 쪽 목록과 가운데 사진 보기 */
 export default function FilePreviewPanel({ pages, onAddFiles, onRemove, onClear, className = '' }: FilePreviewPanelProps) {
@@ -41,7 +41,7 @@ export default function FilePreviewPanel({ pages, onAddFiles, onRemove, onClear,
                     aria-label={`${pageIndex + 1}번 사진 보기`}
                     aria-current={selected ? 'true' : undefined}
                     onClick={() => setSelectedId(page.id)}
-                    className={`block size-full overflow-hidden rounded-ds-small border border-solid ${selected ? 'border-border-neutral-strong' : 'border-border-neutral-default'}`}
+                    className={`block size-full overflow-hidden rounded-ds-small border border-solid ${selected ? 'border-border-neutral-strong' : 'border-border-neutral-default hover:opacity-80'}`}
                   >
                     <img src={page.url} alt="" className="block size-full object-cover" />
                   </button>
@@ -54,7 +54,7 @@ export default function FilePreviewPanel({ pages, onAddFiles, onRemove, onClear,
                     type="button"
                     aria-label={`${pageIndex + 1}번 사진 삭제`}
                     onClick={() => onRemove(page.id)}
-                    className="absolute top-ds-4 right-ds-4 flex size-[16px] items-center justify-center"
+                    className="absolute top-ds-4 right-ds-4 flex size-[16px] items-center justify-center rounded-[4px] hover:bg-background-neutral-weak"
                   >
                     <img src={selected ? closeSelectedIcon : closeIcon} alt="" width={7.75} height={7.75} />
                   </button>

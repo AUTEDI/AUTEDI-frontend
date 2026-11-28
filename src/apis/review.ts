@@ -122,12 +122,16 @@ export async function getReview(worksheetId: number): Promise<Review> {
   return { fileName: text(record(worksheet.file).name), pages, corrections, comments }
 }
 
+const IMAGE_TIMEOUT_MS = 60000
+
 /** 페이지 이미지를 받아 화면에 걸 수 있는 주소(blob:)로 돌려준다. 다 쓰면 URL.revokeObjectURL로 해제한다. */
 export async function getPageImageUrl(worksheetId: number, pageNumber: number): Promise<string> {
   try {
     const { data } = await apiClient.get<Blob>(`/api/v1/worksheets/${worksheetId}/pages/${pageNumber}/image`, {
       headers: authHeader(),
       responseType: 'blob',
+      // 보정 PNG는 10MB 가까이 돼 기본 15초 안에 다 못 받을 수 있다.
+      timeout: IMAGE_TIMEOUT_MS,
     })
     return URL.createObjectURL(data)
   } catch (error) {
