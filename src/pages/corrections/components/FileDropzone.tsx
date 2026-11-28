@@ -129,11 +129,7 @@ export default function FileDropzone({
     <div
       onClick={openPicker}
       {...dropTarget}
-<<<<<<< HEAD
-      className={`group/upload flex cursor-pointer flex-col items-center justify-center gap-ds-48 overflow-clip rounded-ds-large bg-background-brand-weak px-ds-24 py-[36px] font-sans hover:bg-ds-blue-100 ${dragOutline} ${className}`}
-=======
-      className={`flex cursor-pointer flex-col items-center justify-center gap-ds-48 overflow-clip rounded-ds-large bg-background-brand-weak transition-colors hover:bg-[var(--color-blue-100)] px-ds-24 py-[36px] font-sans ${dragOutline} ${className}`}
->>>>>>> origin/develop
+      className={`group/upload flex cursor-pointer flex-col items-center justify-center gap-ds-48 overflow-clip rounded-ds-large bg-background-brand-weak px-ds-24 py-[36px] font-sans transition-colors hover:bg-ds-blue-100 ${dragOutline} ${className}`}
     >
       {fileInput}
       <button
